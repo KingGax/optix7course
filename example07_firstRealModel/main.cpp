@@ -19,34 +19,49 @@
 // our helper library for window handling
 #include "glfWindow/GLFWindow.h"
 #include <GL/gl.h>
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "3rdParty/stb_image_write.h"
 
 /*! \namespace osc - Optix Siggraph Course */
 namespace osc {
 
-  struct SampleWindow : public GLFCameraWindow
+  struct SampleWindow
   {
     SampleWindow(const std::string &title,
                  const Model *model,
                  const Camera &camera,
                  const float worldScale)
-      : GLFCameraWindow(title,camera.from,camera.at,camera.up,worldScale),
-        sample(model)
+      : sample(model)
     {
       sample.setCamera(camera);
     }
     
-    virtual void render() override
+    virtual void run() 
     {
-      if (cameraFrame.modified) {
-        sample.setCamera(Camera{ cameraFrame.get_from(),
-                                 cameraFrame.get_at(),
-                                 cameraFrame.get_up() });
-        cameraFrame.modified = false;
-      }
+      try {
+      const vec2i fbSize(vec2i(1200,1024));
+      sample.resize(fbSize);
       sample.render();
+
+      std::vector<uint32_t> pixels(fbSize.x*fbSize.y);
+      sample.downloadPixels(pixels.data());
+
+      const std::string fileName = "osc_example7.png";
+      stbi_write_png(fileName.c_str(),fbSize.x,fbSize.y,4,
+                     pixels.data(),fbSize.x*sizeof(uint32_t));
+      std::cout << GDT_TERMINAL_GREEN
+                << std::endl
+                << "Image rendered, and saved to " << fileName << " ... done." << std::endl
+                << GDT_TERMINAL_DEFAULT
+                << std::endl;
+    } catch (std::runtime_error& e) {
+      std::cout << GDT_TERMINAL_RED << "FATAL ERROR: " << e.what()
+                << GDT_TERMINAL_DEFAULT << std::endl;
+      exit(1);
+    }
     }
     
-    virtual void draw() override
+    virtual void draw() 
     {
       sample.downloadPixels(pixels.data());
       if (fbTexture == 0)
