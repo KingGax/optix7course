@@ -80,8 +80,12 @@ namespace osc {
     const vec3f rayDir = optixGetWorldRayDirection();
     const float cosDN  = 0.2f + .8f*fabsf(dot(rayDir,Ng));
     vec3f &prd = *(vec3f*)getPRD<vec3f>();
-    prd = cosDN * sbtData.color;
-  }
+    //prd = cosDN * sbtData.color;
+    prd = cosDN * vec3f(1*sbtData.boundary,0,1*(!sbtData.boundary));
+    //prd[0] = 1*sbtData.boundary; 
+    //prd[1] = 1*sbtData.boundary; 
+    //prd[2] = 1; 
+    }
   
   extern "C" __global__ void __anyhit__radiance()
   { /*! for this simple example, this will remain empty */ }

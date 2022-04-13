@@ -33,6 +33,7 @@ namespace osc {
 
     // material data:
     vec3f              diffuse;
+    bool               boundary;
   };
   
   struct Model {

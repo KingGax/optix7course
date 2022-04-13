@@ -134,8 +134,15 @@ namespace osc {
           mesh->index.push_back(idx);
           mesh->diffuse = (const vec3f&)materials[materialID].diffuse;
           mesh->diffuse = gdt::randomColor(materialID);
+          
         }
 
+        if(shape.name.compare("boundary") == 0){
+            mesh->boundary = true;
+          } else{
+            mesh->boundary = false;
+          }
+          
         if (mesh->vertex.empty())
           delete mesh;
         else

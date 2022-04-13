@@ -136,11 +136,15 @@ namespace osc {
 #else
       // on linux, common practice is to have ONE level of build dir
       // (say, <project>/build/)...
-      "../models/sponza.obj"
+      "../models/2.71k-split.obj"
 #endif
                              );
-      Camera camera = { /*from*/vec3f(-1293.07f, 154.681f, -0.7304f),
-                        /* at */model->bounds.center()-vec3f(0,400,0),
+      //Camera camera = { /*from*/vec3f(-1293.07f, 154.681f, -0.7304f),
+      //                  /* at */model->bounds.center()-vec3f(0,400,0),
+      //                  /* up */vec3f(0.f,1.f,0.f) };
+      
+      Camera camera = { /*from*/vec3f(-10.0f, 0, 0),
+                        /* at */model->bounds.center()-vec3f(0,0,0),
                         /* up */vec3f(0.f,1.f,0.f) };
       // something approximating the scale of the world, so the
       // camera knows how much to move for any given user interaction:

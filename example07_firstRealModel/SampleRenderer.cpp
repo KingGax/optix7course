@@ -473,6 +473,7 @@ namespace osc {
       rec.data.color  = model->meshes[meshID]->diffuse;
       rec.data.vertex = (vec3f*)vertexBuffer[meshID].d_pointer();
       rec.data.index  = (vec3i*)indexBuffer[meshID].d_pointer();
+      rec.data.boundary = model->meshes[meshID]->boundary;
       hitgroupRecords.push_back(rec);
     }
     hitgroupRecordsBuffer.alloc_and_upload(hitgroupRecords);
