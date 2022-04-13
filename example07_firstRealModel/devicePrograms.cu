@@ -66,7 +66,7 @@ namespace osc {
   
   extern "C" __global__ void __closesthit__radiance()
   {
-    const TriangleMeshSBTData &sbtData
+    /*const TriangleMeshSBTData &sbtData
       = *(const TriangleMeshSBTData*)optixGetSbtDataPointer();
 
     // compute normal:
@@ -84,11 +84,39 @@ namespace osc {
     prd = cosDN * vec3f(1*sbtData.boundary,0,1*(!sbtData.boundary));
     //prd[0] = 1*sbtData.boundary; 
     //prd[1] = 1*sbtData.boundary; 
-    //prd[2] = 1; 
+    //prd[2] = 1; */
     }
   
   extern "C" __global__ void __anyhit__radiance()
-  { /*! for this simple example, this will remain empty */ }
+  { 
+    
+    float currentTmax = __uint_as_float(optixGetPayload_2());
+    float t = optixGetRayTmax();
+    if(t < currentTmax){
+      optixSetPayload_2(__float_as_uint(t));
+      const TriangleMeshSBTData &sbtData
+      = *(const TriangleMeshSBTData*)optixGetSbtDataPointer();
+
+      // compute normal:
+      const int   primID = optixGetPrimitiveIndex();
+      const vec3i index  = sbtData.index[primID];
+      const vec3f &A     = sbtData.vertex[index.x];
+      const vec3f &B     = sbtData.vertex[index.y];
+      const vec3f &C     = sbtData.vertex[index.z];
+      const vec3f Ng     = normalize(cross(B-A,C-A));
+
+      const vec3f rayDir = optixGetWorldRayDirection();
+      const float cosDN  = 0.2f + .8f*fabsf(dot(rayDir,Ng));
+      vec3f &prd = *(vec3f*)getPRD<vec3f>();
+      //prd = cosDN * sbtData.color;
+      prd = cosDN * vec3f(1*sbtData.boundary,0,1*(!sbtData.boundary));
+    }
+    //prd[0] = 1*sbtData.boundary; 
+    //prd[1] = 1*sbtData.boundary; 
+    //prd[2] = 1; 
+    //optixTerminateRay();
+    
+  }
 
 
   
@@ -135,7 +163,8 @@ namespace osc {
     vec3f rayDir = normalize(camera.direction
                              + (screen.x - 0.5f) * camera.horizontal
                              + (screen.y - 0.5f) * camera.vertical);
-
+    uint32_t tmax = 2139095039; //float max  as an integer
+    
     optixTrace(optixLaunchParams.traversable,
                camera.position,
                rayDir,
@@ -143,11 +172,11 @@ namespace osc {
                1e20f,  // tmax
                0.0f,   // rayTime
                OptixVisibilityMask( 255 ),
-               OPTIX_RAY_FLAG_DISABLE_ANYHIT,//OPTIX_RAY_FLAG_NONE,
+               OPTIX_RAY_FLAG_DISABLE_CLOSESTHIT,//OPTIX_RAY_FLAG_NONE,
                SURFACE_RAY_TYPE,             // SBT offset
                RAY_TYPE_COUNT,               // SBT stride
                SURFACE_RAY_TYPE,             // missSBTIndex 
-               u0, u1 );
+               u0, u1 , tmax);
 
     const int r = int(255.99f*pixelColorPRD.x);
     const int g = int(255.99f*pixelColorPRD.y);
