@@ -22,6 +22,25 @@
 /*! \namespace osc - Optix Siggraph Course */
 namespace osc {
   using namespace gdt;
+
+      struct Triangle {
+      vec3f A, B, C;
+      vec3f Na,Nb,Nc;
+      int materialID;
+      bool boundary;
+      int posDotNormalSection;
+      int negDotNormalSection;
+    };
+
+    struct Tetra {
+      vec4i indes;
+      vec3f A, B, C, D;
+      int materialID;
+      bool boundary;
+      int sectionID;
+      std::vector<Tetra*> neighbours;
+      std::vector<vec4i> neighbourIndicesAndID;
+    };
   
   /*! a simple indexed triangle mesh that our sample renderer will
       render */
@@ -30,7 +49,10 @@ namespace osc {
     std::vector<vec3f> normal;
     std::vector<vec2f> texcoord;
     std::vector<vec3i> index;
-
+    std::vector<vec2i> posNegNormalNeighbours;
+    std::vector<int> sectionID;
+    std::vector<vec3f> accel;
+    std::vector<bool> boundaries;
     // material data:
     vec3f              diffuse;
     bool               boundary;

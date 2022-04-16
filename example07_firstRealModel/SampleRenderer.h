@@ -141,7 +141,8 @@ namespace osc {
     
     /*! one buffer per input mesh */
     std::vector<CUDABuffer> vertexBuffer;
-    /*! one buffer per input mesh */
+    std::vector<CUDABuffer> normalBufffer;
+    std::vector<CUDABuffer> posNegNormalSectionsBuffer;
     std::vector<CUDABuffer> indexBuffer;
     //! buffer that keeps the (final, compacted) accel structure
     CUDABuffer asBuffer;

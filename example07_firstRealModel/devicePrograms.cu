@@ -104,17 +104,18 @@ namespace osc {
       const vec3f &B     = sbtData.vertex[index.y];
       const vec3f &C     = sbtData.vertex[index.z];
       const vec3f Ng     = normalize(cross(B-A,C-A));
-
+      const vec2i neighs = sbtData.posNegNormalSections[primID];
+      const bool boundary = (neighs[0] == -1 || neighs[1] == -1);
       const vec3f rayDir = optixGetWorldRayDirection();
       const float cosDN  = 0.2f + .8f*fabsf(dot(rayDir,Ng));
       vec3f &prd = *(vec3f*)getPRD<vec3f>();
       //prd = cosDN * sbtData.color;
-      prd = cosDN * vec3f(1*sbtData.boundary,0,1*(!sbtData.boundary));
+      prd = cosDN * vec3f(1*boundary,0,1*(!boundary));
     }
     //prd[0] = 1*sbtData.boundary; 
     //prd[1] = 1*sbtData.boundary; 
     //prd[2] = 1; 
-    //optixTerminateRay();
+    optixTerminateRay();
     
   }
 

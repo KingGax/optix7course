@@ -92,6 +92,8 @@ namespace osc {
     
     vertexBuffer.resize(model->meshes.size());
     indexBuffer.resize(model->meshes.size());
+    posNegNormalSectionsBuffer.resize(model->meshes.size());
+    normalBufffer.resize(model->meshes.size());
     
     OptixTraversableHandle asHandle { 0 };
     
@@ -101,6 +103,8 @@ namespace osc {
     std::vector<OptixBuildInput> triangleInput(model->meshes.size());
     std::vector<CUdeviceptr> d_vertices(model->meshes.size());
     std::vector<CUdeviceptr> d_indices(model->meshes.size());
+    std::vector<CUdeviceptr> d_normalSections(model->meshes.size());
+    std::vector<CUdeviceptr> d_normal(model->meshes.size());
     std::vector<uint32_t> triangleInputFlags(model->meshes.size());
 
     for (int meshID=0;meshID<model->meshes.size();meshID++) {
@@ -108,7 +112,8 @@ namespace osc {
       TriangleMesh &mesh = *model->meshes[meshID];
       vertexBuffer[meshID].alloc_and_upload(mesh.vertex);
       indexBuffer[meshID].alloc_and_upload(mesh.index);
-
+      posNegNormalSectionsBuffer[meshID].alloc_and_upload(mesh.posNegNormalNeighbours);
+      normalBufffer[meshID].alloc_and_upload(mesh.normal);
       triangleInput[meshID] = {};
       triangleInput[meshID].type
         = OPTIX_BUILD_INPUT_TYPE_TRIANGLES;
@@ -117,6 +122,7 @@ namespace osc {
       // device pointers
       d_vertices[meshID] = vertexBuffer[meshID].d_pointer();
       d_indices[meshID]  = indexBuffer[meshID].d_pointer();
+      d_normalSections[meshID]  = posNegNormalSectionsBuffer[meshID].d_pointer();
       
       triangleInput[meshID].triangleArray.vertexFormat        = OPTIX_VERTEX_FORMAT_FLOAT3;
       triangleInput[meshID].triangleArray.vertexStrideInBytes = sizeof(vec3f);
@@ -473,7 +479,7 @@ namespace osc {
       rec.data.color  = model->meshes[meshID]->diffuse;
       rec.data.vertex = (vec3f*)vertexBuffer[meshID].d_pointer();
       rec.data.index  = (vec3i*)indexBuffer[meshID].d_pointer();
-      rec.data.boundary = model->meshes[meshID]->boundary;
+      rec.data.posNegNormalSections  = (vec2i*)posNegNormalSectionsBuffer[meshID].d_pointer();
       hitgroupRecords.push_back(rec);
     }
     hitgroupRecordsBuffer.alloc_and_upload(hitgroupRecords);

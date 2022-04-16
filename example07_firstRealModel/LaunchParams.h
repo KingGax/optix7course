@@ -26,7 +26,7 @@ namespace osc {
     vec3f  color;
     vec3f *vertex;
     vec3i *index;
-    bool boundary;
+    vec2i *posNegNormalSections; //stores the positive and negative normals
   };
   
   struct LaunchParams
