@@ -58,6 +58,8 @@ namespace osc {
 
     /*! set camera to render with */
     void setCamera(const Camera &camera);
+
+    void setParticleNum(const int numParticles);
   protected:
     // ------------------------------------------------------------------
     // internal helper functions
@@ -132,6 +134,9 @@ namespace osc {
     /*! @} */
 
     CUDABuffer colorBuffer;
+    CUDABuffer particleBuffer;
+    CUDABuffer particleVelBuffer;
+    CUDABuffer particleSectionBuffer;
 
     /*! the camera we are to render with. */
     Camera lastSetCamera;

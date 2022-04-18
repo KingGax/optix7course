@@ -28,6 +28,13 @@ namespace osc {
     vec3i *index;
     vec2i *posNegNormalSections; //stores the positive and negative normals
   };
+
+  struct Particle {
+    vec3f pos;
+    vec3f vel;
+    int   section;
+    float simPercent;
+  };
   
   struct LaunchParams
   {
@@ -35,6 +42,8 @@ namespace osc {
       uint32_t *colorBuffer;
       vec2i     size;
     } frame;
+
+    Particle * particles;
     
     struct {
       vec3f position;

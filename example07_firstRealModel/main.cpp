@@ -39,16 +39,21 @@ namespace osc {
     
     virtual void run() 
     {
+      const int particleNum = 1;
+      const int numTimesteps = 10;
       const vec2i fbSize(vec2i(1200,1024));
       sample.resize(fbSize);
-      for(int i = 0; i < 2; i++){
-        try {
-      Camera camera = { /*from*/vec3f(-10.0f, 0, 5.0 * i),
+      sample.setParticleNum(particleNum);
+      for(int i = 0; i < numTimesteps; i++){
+        Camera camera = { /*from*/vec3f(-10.0f, 0, 5.0 * i),
                         /* at */loadedModel->bounds.center()-vec3f(0,0,0),
                         /* up */vec3f(0.f,1.f,0.f) };
-      sample.setCamera(camera);
+        sample.setCamera(camera);
       
-      sample.render();
+        sample.render();
+        
+        try {
+      
 
       std::vector<uint32_t> pixels(fbSize.x*fbSize.y);
       sample.downloadPixels(pixels.data());

@@ -111,11 +111,12 @@ namespace osc {
       vec3f &prd = *(vec3f*)getPRD<vec3f>();
       //prd = cosDN * sbtData.color;
       prd = cosDN * vec3f(1*boundary,0,1*(!boundary));
+      //optixLaunchParams.frame.colorBuffer[0] = 0x00000000;
     }
     //prd[0] = 1*sbtData.boundary; 
     //prd[1] = 1*sbtData.boundary; 
     //prd[2] = 1; 
-    optixTerminateRay();
+    optixIgnoreIntersection();
     
   }
 
@@ -131,9 +132,12 @@ namespace osc {
   
   extern "C" __global__ void __miss__radiance()
   {
-    vec3f &prd = *(vec3f*)getPRD<vec3f>();
-    // set to constant white as background color
-    prd = vec3f(1.f);
+    float currentTmax = __uint_as_float(optixGetPayload_2());
+    if(currentTmax > 1e10){
+      vec3f &prd = *(vec3f*)getPRD<vec3f>();
+      // set to constant white as background color
+      prd = vec3f(1.f);
+    }
   }
 
   //------------------------------------------------------------------------------

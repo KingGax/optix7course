@@ -551,6 +551,52 @@ namespace osc {
     setCamera(lastSetCamera);
   }
 
+
+  inline vec3f randomVector()
+  {
+    vec3f newVector = vec3f();
+    for(int i = 0; i < 3; i++){
+      newVector[i] = ((((float) rand()) / (float) RAND_MAX) - 0.5) * 2;
+    }
+    return newVector;
+  }
+
+  void SampleRenderer::setParticleNum(const int numParticles)
+  { 
+    std::cout << "initialising particles " << "\n";
+    // resize our cuda frame buffer
+    /*particlePosBuffer.resize(numParticles*sizeof(vec3f));
+    particleVelBuffer.resize(numParticles*sizeof(vec3f));
+    particleSectionBuffer.resize(numParticles*sizeof(int));
+
+    launchParams.particles.positions = (vec3f*)particlePosBuffer.d_pointer();
+    launchParams.particles.velocities = (vec3f*)particleVelBuffer.d_pointer();
+    launchParams.particles.sections = (int*)particleSectionBuffer.d_pointer();*/
+
+    particleBuffer.resize(numParticles*sizeof(Particle));
+    launchParams.particles = (Particle*)particleBuffer.d_pointer();
+    
+
+    std::srand(42);
+    vec3f particleOrigin = vec3f(1,1,1);
+    for (int i = 0; i < numParticles; i++)
+    {
+      vec3f vel = randomVector();
+      vec3f posOffset = randomVector();
+      Particle * p = new Particle();
+      p->vel = vec3f(vel.x * 0.8f, vel.y * 0.8f, vel.z * 0.8f);
+      //cudaMemcpy((launchParams.particles.velocities+i),&particleVelocity,sizeof(vec3f),cudaMemcpyHostToDevice);
+      p->pos = vec3f(particleOrigin.x + posOffset.x * 0.1,particleOrigin.y + posOffset.y * 0.1,particleOrigin.z + posOffset.z * 0.1);
+      p->simPercent = 0;
+      p->section = 0;
+      cudaMemcpy((launchParams.particles + i),&p,sizeof(Particle),cudaMemcpyHostToDevice);
+      //launchParams.particles.sections[i] = 4;
+    }
+
+    std::cout << "set particles " << "\n";
+
+  }
+
   /*! download the rendered color buffer */
   void SampleRenderer::downloadPixels(uint32_t h_pixels[])
   {
