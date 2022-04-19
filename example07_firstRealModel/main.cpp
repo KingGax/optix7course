@@ -44,35 +44,20 @@ namespace osc {
       const vec2i fbSize(vec2i(1200,1024));
       sample.resize(fbSize);
       sample.setParticleNum(particleNum);
-      for(int i = 0; i < numTimesteps; i++){
-        Camera camera = { /*from*/vec3f(-10.0f, 0, 5.0 * i),
+      Camera camera = { /*from*/vec3f(-10.0f, 0, 5.0),
                         /* at */loadedModel->bounds.center()-vec3f(0,0,0),
                         /* up */vec3f(0.f,1.f,0.f) };
-        sample.setCamera(camera);
-      
+      sample.setCamera(camera);
+      int timeStep = 0;
+      while(timeStep < numTimesteps){
+        std::cout << "run timestep " << timeStep << "\n";
         sample.render();
-        
-        try {
-      
-
-      std::vector<uint32_t> pixels(fbSize.x*fbSize.y);
-      sample.downloadPixels(pixels.data());
-
-      const std::string fileName = "osc_example7frame" + std::to_string(i) + ".png";
-      stbi_write_png(fileName.c_str(),fbSize.x,fbSize.y,4,
-                     pixels.data(),fbSize.x*sizeof(uint32_t));
-      std::cout << GDT_TERMINAL_GREEN
-                << std::endl
-                << "Image rendered, and saved to " << fileName << " ... done." << std::endl
-                << GDT_TERMINAL_DEFAULT
-                << std::endl;
-    } catch (std::runtime_error& e) {
-      std::cout << GDT_TERMINAL_RED << "FATAL ERROR: " << e.what()
-                << GDT_TERMINAL_DEFAULT << std::endl;
-      exit(1);
-    }
+        if(sample.timestepFinished()){
+          timeStep++;
+          //std::cout << "next timestep " << "\n";
+        }
       }
-      
+      std::cout << "done simulating " << "\n";
     }
     
     

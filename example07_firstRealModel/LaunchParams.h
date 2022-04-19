@@ -44,6 +44,9 @@ namespace osc {
     } frame;
 
     Particle * particles;
+    bool firstTrace;
+    
+    int * bounced; 
     
     struct {
       vec3f position;

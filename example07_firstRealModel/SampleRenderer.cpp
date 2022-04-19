@@ -105,6 +105,7 @@ namespace osc {
     std::vector<CUdeviceptr> d_indices(model->meshes.size());
     std::vector<CUdeviceptr> d_normalSections(model->meshes.size());
     std::vector<CUdeviceptr> d_normal(model->meshes.size());
+    
     std::vector<uint32_t> triangleInputFlags(model->meshes.size());
 
     for (int meshID=0;meshID<model->meshes.size();meshID++) {
@@ -294,7 +295,7 @@ namespace osc {
     pipelineCompileOptions = {};
     pipelineCompileOptions.traversableGraphFlags = OPTIX_TRAVERSABLE_GRAPH_FLAG_ALLOW_SINGLE_GAS;
     pipelineCompileOptions.usesMotionBlur     = false;
-    pipelineCompileOptions.numPayloadValues   = 3;
+    pipelineCompileOptions.numPayloadValues   = 4;
     pipelineCompileOptions.numAttributeValues = 2;
     pipelineCompileOptions.exceptionFlags     = OPTIX_EXCEPTION_FLAG_NONE;
     pipelineCompileOptions.pipelineLaunchParamsVariableName = "optixLaunchParams";
@@ -392,6 +393,10 @@ namespace osc {
                                         &hitgroupPGs[0]
                                         ));
     if (sizeof_log > 1) PRINT(log);
+  }
+
+  bool SampleRenderer::timestepFinished(){
+    return (bounced[0] == 0);
   }
     
 
@@ -496,9 +501,11 @@ namespace osc {
     // sanity check: make sure we launch only after first resize is
     // already done:
     if (launchParams.frame.size.x == 0) return;
-      
+    int init = 0;
+    cudaMemcpy(launchParams.bounced,&init,sizeof(int),cudaMemcpyDefault);
     launchParamsBuffer.upload(&launchParams,1);
       
+    std::cout << "launch timee" << "\n";
     OPTIX_CHECK(optixLaunch(/*! pipeline we're launching launch: */
                             pipeline,stream,
                             /*! parameters and SBT */
@@ -507,7 +514,7 @@ namespace osc {
                             &sbt,
                             /*! dimensions of the launch: */
                             launchParams.frame.size.x,
-                            launchParams.frame.size.y,
+                            1,
                             1
                             ));
     // sync - make sure the frame is rendered before we download and
@@ -515,6 +522,13 @@ namespace osc {
     // want to use streams and double-buffering, but for this simple
     // example, this will have to do)
     CUDA_SYNC_CHECK();
+    bouncedBuffer.download(bounced,1);
+    if(timestepFinished()){
+      launchParams.firstTrace = true;
+    } else {
+      launchParams.firstTrace = false;
+    }
+    std::cout << "sync check done" << "\n";
   }
 
   /*! set camera to render with */
@@ -573,25 +587,33 @@ namespace osc {
     launchParams.particles.velocities = (vec3f*)particleVelBuffer.d_pointer();
     launchParams.particles.sections = (int*)particleSectionBuffer.d_pointer();*/
 
+    launchParams.frame.size  = vec2i(numParticles,1);
     particleBuffer.resize(numParticles*sizeof(Particle));
     launchParams.particles = (Particle*)particleBuffer.d_pointer();
-    
+    bounced = new int[1];
+    bounced[0] = 0;
+    bouncedBuffer.resize(sizeof(int));
+    launchParams.bounced = (int*)bouncedBuffer.d_pointer();
+    int init = 0;
+    cudaMemcpy(launchParams.bounced,&init,sizeof(int),cudaMemcpyDefault);
 
     std::srand(42);
     vec3f particleOrigin = vec3f(1,1,1);
     for (int i = 0; i < numParticles; i++)
     {
-      vec3f vel = randomVector();
-      vec3f posOffset = randomVector();
+      vec3f vel = vec3f(0.5,0,0);//randomVector();
+      vec3f posOffset = vec3f(0,0,0);//randomVector();
       Particle * p = new Particle();
       p->vel = vec3f(vel.x * 0.8f, vel.y * 0.8f, vel.z * 0.8f);
       //cudaMemcpy((launchParams.particles.velocities+i),&particleVelocity,sizeof(vec3f),cudaMemcpyHostToDevice);
       p->pos = vec3f(particleOrigin.x + posOffset.x * 0.1,particleOrigin.y + posOffset.y * 0.1,particleOrigin.z + posOffset.z * 0.1);
       p->simPercent = 0;
       p->section = 0;
-      cudaMemcpy((launchParams.particles + i),&p,sizeof(Particle),cudaMemcpyHostToDevice);
+      cudaMemcpy((&launchParams.particles[i]),p,sizeof(Particle),cudaMemcpyDefault);
       //launchParams.particles.sections[i] = 4;
     }
+    //std::cout << launchParams.particles[0].pos << "\n";
+
 
     std::cout << "set particles " << "\n";
 

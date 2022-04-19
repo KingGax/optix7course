@@ -60,6 +60,8 @@ namespace osc {
     void setCamera(const Camera &camera);
 
     void setParticleNum(const int numParticles);
+
+    bool timestepFinished();
   protected:
     // ------------------------------------------------------------------
     // internal helper functions
@@ -137,6 +139,7 @@ namespace osc {
     CUDABuffer particleBuffer;
     CUDABuffer particleVelBuffer;
     CUDABuffer particleSectionBuffer;
+    CUDABuffer bouncedBuffer;
 
     /*! the camera we are to render with. */
     Camera lastSetCamera;
@@ -149,8 +152,10 @@ namespace osc {
     std::vector<CUDABuffer> normalBufffer;
     std::vector<CUDABuffer> posNegNormalSectionsBuffer;
     std::vector<CUDABuffer> indexBuffer;
+    
     //! buffer that keeps the (final, compacted) accel structure
     CUDABuffer asBuffer;
+    int * bounced;
   };
 
 } // ::osc
