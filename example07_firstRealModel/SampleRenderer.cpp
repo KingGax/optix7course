@@ -599,14 +599,16 @@ namespace osc {
 
     std::srand(42);
     vec3f particleOrigin = vec3f(1,1,1);
+    float particleSpeedMultiplier = 0.8f;
+    float particleoffsetMultiplier = 0.1f;
     for (int i = 0; i < numParticles; i++)
     {
-      vec3f vel = vec3f(0.5,0,0);//randomVector();
+      vec3f vel = vec3f(0.5,0.499,0);//randomVector();
       vec3f posOffset = vec3f(0,0,0);//randomVector();
       Particle * p = new Particle();
-      p->vel = vec3f(vel.x * 0.8f, vel.y * 0.8f, vel.z * 0.8f);
+      p->vel = vec3f(vel.x * particleSpeedMultiplier, vel.y * particleSpeedMultiplier, vel.z * particleSpeedMultiplier);
       //cudaMemcpy((launchParams.particles.velocities+i),&particleVelocity,sizeof(vec3f),cudaMemcpyHostToDevice);
-      p->pos = vec3f(particleOrigin.x + posOffset.x * 0.1,particleOrigin.y + posOffset.y * 0.1,particleOrigin.z + posOffset.z * 0.1);
+      p->pos = vec3f(particleOrigin.x + posOffset.x * particleoffsetMultiplier,particleOrigin.y + posOffset.y * particleoffsetMultiplier,particleOrigin.z + posOffset.z * particleoffsetMultiplier);
       p->simPercent = 0;
       p->section = 0;
       cudaMemcpy((&launchParams.particles[i]),p,sizeof(Particle),cudaMemcpyDefault);

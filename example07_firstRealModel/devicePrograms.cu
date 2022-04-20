@@ -119,7 +119,8 @@ namespace osc {
         p.pos += p.vel * t;
         vec3f newDir = p.vel - 2.0f*dot(p.vel, N)*N;
         p.vel = newDir;
-        //printf("write to bounced\n");
+        //printf("HIT BOUNDARY\n");
+        //printf("%f , %f, %f position %f , %f, %f \n", p.vel.x,p.vel.y,p.vel.z, p.pos.x,p.pos.y,p.pos.z);
         optixLaunchParams.bounced[0] = 1;
         //printf("written to bounced\n");
         optixTerminateRay();
@@ -150,7 +151,7 @@ namespace osc {
   
   extern "C" __global__ void __miss__radiance()
   {
-    printf("in miss\n");
+    //printf("in miss\n");
     /*float currentTmax = __uint_as_float(optixGetPayload_2());
     if(currentTmax > 1e10){
       vec3f &prd = *(vec3f*)getPRD<vec3f>();
@@ -206,18 +207,18 @@ namespace osc {
     //                         + (screen.y - 0.5f) * camera.vertical);
     uint32_t tmaxPayload = __float_as_uint(0); //float max  as an integer
     uint32_t firstTraceFlag = (int)optixLaunchParams.firstTrace;
-    printf("launbching trace\n");
-    printf("%f , %f, %f \n", pos.x,pos.y,pos.z);
+    //printf("launbching trace\n");
+    //printf("vel %f , %f, %f position %f , %f, %f \n", p->vel.x,p->vel.y,p->vel.z, p->pos.x,p->pos.y,p->pos.z);
     //printf("%f \n", rayDir.x);
     //printf("%f \n", rayDir.y);
     //printf("%f \n", rayDir.z);
     float tmax = optixLaunchParams.firstTrace * 1 + (!optixLaunchParams.firstTrace) * (1-p->simPercent);
-    float eps = 1e-3;
+    float eps = 5e-4;
 
     optixTrace(optixLaunchParams.traversable,
                pos,
                rayDir,
-               0,    // tmin
+               eps,    // tmin
                tmax,  // tmax
                0.0f,   // rayTime
                OptixVisibilityMask( 255 ),
@@ -226,7 +227,7 @@ namespace osc {
                RAY_TYPE_COUNT,               // SBT stride
                SURFACE_RAY_TYPE,             // missSBTIndex 
                u0, u1 , tmaxPayload, firstTraceFlag);
-    printf("trace launched\n");
+    //printf("trace launched\n");
 
     //const int r = int(255.99f*pixelColorPRD.x);
     //const int g = int(255.99f*pixelColorPRD.y);

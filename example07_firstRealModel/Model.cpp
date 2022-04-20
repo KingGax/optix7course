@@ -238,10 +238,10 @@ namespace osc {
               const vec3f N = normalize(cross(B - A, C - A));
               float dotProd = dot(N, sparePoint);
               
-              int posDotNormalSection = (dotProd > 0) ? currentTetra.sectionID : -1;
-              int negDotNormalSection = (dotProd > 0) ? -1 : currentTetra.sectionID;
+              int posDotNormalSection = (dotProd > 0) ? currentTetra.sectionID : neighbourMatch;
+              int negDotNormalSection = (dotProd > 0) ? neighbourMatch : currentTetra.sectionID;
               //std::cout << " add tri for section " << currentTetra.sectionID << std::endl;
-              // std::cout << i << " " << N << std::endl;
+              //std::cout << A << " " << B << " " << C << " boundary " << boundary << " pos " << posDotNormalSection << " neg " << negDotNormalSection << std::endl;
               //triangles.push_back({A, B, C, N, N, N, materialID, boundary, posDotNormalSection, negDotNormalSection});
               addTriangle(model->meshes[0],indes,N,posDotNormalSection,negDotNormalSection,boundary);
             }
@@ -276,6 +276,7 @@ namespace osc {
                 int negDotNormalSection = (dotProd > 0) ? neighbourID : currentTetra.sectionID;
                 //std::cout << currentTetra.sectionID << " <> " << neighbourID << std::endl;
                 //triangles.push_back({A, B, C, N, N, N, materialID, boundary, posDotNormalSection, negDotNormalSection});
+                //std::cout << "bound " << A << " " << B << " " << C << " boundary " << boundary << " pos " << posDotNormalSection << " neg " << negDotNormalSection << std::endl;
                 addTriangle(model->meshes[0],indes,N,posDotNormalSection,negDotNormalSection,boundary);
               }
             } else{
@@ -376,6 +377,7 @@ namespace osc {
           int currentVertice = x + verticesPerAxis*z + verticesPerAxis*verticesPerAxis*y;
           vertices[currentVertice] = vec3f(xfrac * size, yfrac * size, zfrac * size);
           cubeMesh->vertex.push_back(vec3f(xfrac * size, yfrac * size, zfrac * size));
+          printf("%f , %f, %f\n",vertices[currentVertice].x,vertices[currentVertice].y,vertices[currentVertice].z);
         }
       }
     }
@@ -431,74 +433,6 @@ namespace osc {
   
   Model *loadOBJ(const std::string &objFile)
   {
-
-    /*const std::string mtlDir
-      = objFile.substr(0,objFile.rfind('/')+1);
-    PRINT(mtlDir);
-    
-    tinyobj::attrib_t attributes;
-    std::vector<tinyobj::shape_t> shapes;
-    std::vector<tinyobj::material_t> materials;
-    std::string err = "";
-
-    bool readOK
-      = tinyobj::LoadObj(&attributes,
-                         &shapes,
-                         &materials,
-                         &err,
-                         &err,
-						 objFile.c_str(),
-                         mtlDir.c_str(),
-                         /* triangulate *///true);
-    /*if (!readOK) {
-      throw std::runtime_error("Could not read OBJ model from "+objFile+":"+mtlDir+" : "+err);
-    }
-
-    if (materials.empty())
-      throw std::runtime_error("could not parse materials ...");
-
-    std::cout << "Done loading obj file - found " << shapes.size() << " shapes with " << materials.size() << " materials" << std::endl;
-    for (int shapeID=0;shapeID<(int)shapes.size();shapeID++) {
-      tinyobj::shape_t &shape = shapes[shapeID];
-
-      std::set<int> materialIDs;
-      for (auto faceMatID : shape.mesh.material_ids)
-        materialIDs.insert(faceMatID);
-      
-      std::map<tinyobj::index_t,int> knownVertices;
-      
-      for (int materialID : materialIDs) {
-        TriangleMesh *mesh = new TriangleMesh;
-        
-        for (int faceID=0;faceID<shape.mesh.material_ids.size();faceID++) {
-          if (shape.mesh.material_ids[faceID] != materialID) continue;
-          tinyobj::index_t idx0 = shape.mesh.indices[3*faceID+0];
-          tinyobj::index_t idx1 = shape.mesh.indices[3*faceID+1];
-          tinyobj::index_t idx2 = shape.mesh.indices[3*faceID+2];
-          
-          vec3i idx(addVertex(mesh, attributes, idx0, knownVertices),
-                    addVertex(mesh, attributes, idx1, knownVertices),
-                    addVertex(mesh, attributes, idx2, knownVertices));
-          mesh->index.push_back(idx);
-          mesh->diffuse = (const vec3f&)materials[materialID].diffuse;
-          mesh->diffuse = gdt::randomColor(materialID);
-          
-        }
-
-        if(shape.name.compare("boundary") == 0){
-            mesh->boundary = true;
-          } else{
-            mesh->boundary = false;
-          }
-
-        if (mesh->vertex.empty())
-          delete mesh;
-        else
-          model->meshes.push_back(mesh);
-      }
-    }*/
-
-
     Model* model = addTetraCube(0,2,1,6);
     // of course, you should be using tbb::parallel_for for stuff
     // like this:
