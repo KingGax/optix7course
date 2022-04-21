@@ -38,7 +38,7 @@ namespace osc {
     __align__( OPTIX_SBT_RECORD_ALIGNMENT ) char header[OPTIX_SBT_RECORD_HEADER_SIZE];
     // just a dummy value - later examples will use more interesting
     // data here
-    void *data;
+    TriangleMeshSBTData data;
   };
 
   /*! SBT record for a hitgroup program */
@@ -295,7 +295,7 @@ namespace osc {
     pipelineCompileOptions = {};
     pipelineCompileOptions.traversableGraphFlags = OPTIX_TRAVERSABLE_GRAPH_FLAG_ALLOW_SINGLE_GAS;
     pipelineCompileOptions.usesMotionBlur     = false;
-    pipelineCompileOptions.numPayloadValues   = 4;
+    pipelineCompileOptions.numPayloadValues   = 5;
     pipelineCompileOptions.numAttributeValues = 2;
     pipelineCompileOptions.exceptionFlags     = OPTIX_EXCEPTION_FLAG_NONE;
     pipelineCompileOptions.pipelineLaunchParamsVariableName = "optixLaunchParams";
@@ -464,7 +464,11 @@ namespace osc {
     for (int i=0;i<missPGs.size();i++) {
       MissRecord rec;
       OPTIX_CHECK(optixSbtRecordPackHeader(missPGs[i],&rec));
-      rec.data = nullptr; /* for now ... */
+      //rec.data = nullptr; /* for now ... */
+      rec.data.vertex = (vec3f*)vertexBuffer[0].d_pointer(); //change if more models
+      rec.data.index  = (vec3i*)indexBuffer[0].d_pointer();
+      rec.data.posNegNormalSections  = (vec2i*)posNegNormalSectionsBuffer[0].d_pointer();
+      rec.data.normals  = (vec3f*)normalBufffer[0].d_pointer();
       missRecords.push_back(rec);
     }
     missRecordsBuffer.alloc_and_upload(missRecords);
@@ -505,7 +509,7 @@ namespace osc {
     cudaMemcpy(launchParams.bounced,&init,sizeof(int),cudaMemcpyDefault);
     launchParamsBuffer.upload(&launchParams,1);
       
-    std::cout << "launch timee" << "\n";
+    //std::cout << "launch timee" << "\n";
     OPTIX_CHECK(optixLaunch(/*! pipeline we're launching launch: */
                             pipeline,stream,
                             /*! parameters and SBT */
@@ -528,7 +532,7 @@ namespace osc {
     } else {
       launchParams.firstTrace = false;
     }
-    std::cout << "sync check done" << "\n";
+    //std::cout << "sync check done" << "\n";
   }
 
   /*! set camera to render with */
@@ -575,6 +579,67 @@ namespace osc {
     return newVector;
   }
 
+float ScTP(vec3f a, vec3f b, vec3f c){
+  return dot(a,cross(b,c));
+}
+
+vec4f bary_tet(const vec3f a, const vec3f b, const vec3f c, const vec3f d, const vec3f p)
+{
+    vec3f vap = p - a;
+    vec3f vbp = p - b;
+
+    vec3f vab = b - a;
+    vec3f vac = c - a;
+    vec3f vad = d - a;
+
+    vec3f vbc = c - b;
+    vec3f vbd = d - b;
+    // ScTP computes the scalar triple product
+    float va6 = ScTP(vbp, vbd, vbc);
+    float vb6 = ScTP(vap, vac, vad);
+    float vc6 = ScTP(vap, vad, vab);
+    float vd6 = ScTP(vap, vab, vac);
+    float v6 = 1 / ScTP(vab, vac, vad);
+    return vec4f(va6*v6, vb6*v6, vc6*v6, vd6*v6);
+} 
+
+  float SampleRenderer::getParticleSectionAccuracy(const int numParticles)
+  { 
+    const bool calculateCorrectSection = true;
+    int realSection[4] = {-5,-5,-5,-5};
+    particleBuffer.download(particles,numParticles);
+    int numCorrect = 0;
+    int numCandidateSections = 0;
+    for(int j = 0; j < numParticles; j++){
+          Particle p = particles[j];
+          vec3f pos = p.pos;
+          Tetra tet = model->tetras[p.section]; 
+          vec4f baryTetVector = bary_tet(tet.A,tet.B,tet.C,tet.D,pos);
+          if(baryTetVector[0] < 0 || baryTetVector[1] < 0 || baryTetVector[2] < 0 || baryTetVector[3] < 0){
+            
+          } else{
+            numCorrect++;
+            realSection[0] = p.section;
+          }
+          if(calculateCorrectSection){
+              for(int t = 0; t <  model->tetras.size(); t++){
+                Tetra tempTet = model->tetras[t]; 
+
+                vec4f tempBaryTetVector = bary_tet(tempTet.A,tempTet.B,tempTet.C,tempTet.D,pos);
+                if(!(tempBaryTetVector[0] < 0 || tempBaryTetVector[1] < 0 || tempBaryTetVector[2] < 0 || tempBaryTetVector[3] < 0)){
+                  realSection[numCandidateSections] = t;
+                  numCandidateSections++;
+                } else {
+                   //std::cout << tempBaryTetVector << " " << std::endl;
+                }
+
+              }
+              std::cout << " section " << p.section << " pos " << p.pos << " real sections " << realSection[0] << " " << realSection[1] << " " << realSection[2] << " " << realSection[3] << std::endl;
+            }
+    }
+    return (float)numCorrect / (float)numParticles;
+  }
+
   void SampleRenderer::setParticleNum(const int numParticles)
   { 
     std::cout << "initialising particles " << "\n";
@@ -586,13 +651,14 @@ namespace osc {
     launchParams.particles.positions = (vec3f*)particlePosBuffer.d_pointer();
     launchParams.particles.velocities = (vec3f*)particleVelBuffer.d_pointer();
     launchParams.particles.sections = (int*)particleSectionBuffer.d_pointer();*/
-
+    particles = new Particle[numParticles];
     launchParams.frame.size  = vec2i(numParticles,1);
     particleBuffer.resize(numParticles*sizeof(Particle));
     launchParams.particles = (Particle*)particleBuffer.d_pointer();
     bounced = new int[1];
     bounced[0] = 0;
     bouncedBuffer.resize(sizeof(int));
+    launchParams.firstTrace = true;
     launchParams.bounced = (int*)bouncedBuffer.d_pointer();
     int init = 0;
     cudaMemcpy(launchParams.bounced,&init,sizeof(int),cudaMemcpyDefault);
@@ -603,7 +669,7 @@ namespace osc {
     float particleoffsetMultiplier = 0.1f;
     for (int i = 0; i < numParticles; i++)
     {
-      vec3f vel = vec3f(0.5,0.499,0);//randomVector();
+      vec3f vel = vec3f(0.5,0.4876,0);//randomVector();
       vec3f posOffset = vec3f(0,0,0);//randomVector();
       Particle * p = new Particle();
       p->vel = vec3f(vel.x * particleSpeedMultiplier, vel.y * particleSpeedMultiplier, vel.z * particleSpeedMultiplier);
@@ -612,6 +678,7 @@ namespace osc {
       p->simPercent = 0;
       p->section = 0;
       cudaMemcpy((&launchParams.particles[i]),p,sizeof(Particle),cudaMemcpyDefault);
+      particles[i] = *p;
       //launchParams.particles.sections[i] = 4;
     }
     //std::cout << launchParams.particles[0].pos << "\n";

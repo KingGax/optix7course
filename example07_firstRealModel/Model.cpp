@@ -196,8 +196,9 @@ namespace osc {
 
   }
 
-  void addTriangle(TriangleMesh *mesh, vec3i indes, vec3f normal, int posNeighbour, int negNeighbour, bool boundary){
-    mesh->normal.push_back(normal);
+  void addTriangle(TriangleMesh *mesh, vec3i indes, vec3f normal, int posNeighbour, int negNeighbour, bool boundary,vec3f sparePoint){
+    //mesh->normal.push_back(normal);
+    mesh->normal.push_back(sparePoint);
     mesh->index.push_back(indes);
     mesh->posNegNormalNeighbours.push_back(vec2i(posNeighbour,negNeighbour));
     mesh->boundaries.push_back(boundary);
@@ -229,21 +230,26 @@ namespace osc {
               vec3f A = vertices[currentTetra.indes[indexPermutations[i][0]]];
               vec3f B = vertices[currentTetra.indes[indexPermutations[i][1]]];
               vec3f C = vertices[currentTetra.indes[indexPermutations[i][2]]];
-              vec3f sparePoint = vertices[currentTetra.indes[indexPermutations[i][2]]];
+              vec3f sparePoint = vertices[currentTetra.indes[indexPermutations[i][3]]];
 
               bool boundary = (neighbourMatch == -1);
               vec3i indes = vec3i(currentTetra.indes[indexPermutations[i][0]],currentTetra.indes[indexPermutations[i][1]],currentTetra.indes[indexPermutations[i][2]]);
               int materialID = currentTetra.materialID;
 
               const vec3f N = normalize(cross(B - A, C - A));
-              float dotProd = dot(N, sparePoint);
-              
+              const vec3f aToSpare = sparePoint - A;
+              const vec3f bToSpare = sparePoint - B;
+              float dotProd = dot(N, aToSpare) + dot(N, bToSpare);
+              if(dotProd == 0){
+                std::cout << "ZERO bound" << "\n";
+                std::cout << A << " " << B << " " << C << " " << sparePoint <<"\n";
+              } 
               int posDotNormalSection = (dotProd > 0) ? currentTetra.sectionID : neighbourMatch;
               int negDotNormalSection = (dotProd > 0) ? neighbourMatch : currentTetra.sectionID;
               //std::cout << " add tri for section " << currentTetra.sectionID << std::endl;
               //std::cout << A << " " << B << " " << C << " boundary " << boundary << " pos " << posDotNormalSection << " neg " << negDotNormalSection << std::endl;
               //triangles.push_back({A, B, C, N, N, N, materialID, boundary, posDotNormalSection, negDotNormalSection});
-              addTriangle(model->meshes[0],indes,N,posDotNormalSection,negDotNormalSection,boundary);
+              addTriangle(model->meshes[0],indes,N,posDotNormalSection,negDotNormalSection,boundary,sparePoint);
             }
           }
         }
@@ -271,13 +277,19 @@ namespace osc {
                 // int connectedSection = currentTetra.neighbours[i]->
                 vec3i indes = vec3i(currentTetra.indes[indexPermutations[i][0]],currentTetra.indes[indexPermutations[i][1]],currentTetra.indes[indexPermutations[i][2]]);
                 const vec3f N = normalize(cross(B - A, C - A));
-                float dotProd = dot(N, sparePoint);
+                const vec3f aToSpare = sparePoint - A;
+                const vec3f bToSpare = sparePoint - B;
+                float dotProd = dot(N, aToSpare) + dot(N, bToSpare);
                 int posDotNormalSection = (dotProd > 0) ? currentTetra.sectionID : neighbourID;
                 int negDotNormalSection = (dotProd > 0) ? neighbourID : currentTetra.sectionID;
+                if(dotProd == 0){
+                  std::cout << "ZERO non bound" << "\n";
+                  std::cout << A << " " << B << " " << C << " " << sparePoint << " norm average " << N << aToSpare << "\n";
+                }
                 //std::cout << currentTetra.sectionID << " <> " << neighbourID << std::endl;
                 //triangles.push_back({A, B, C, N, N, N, materialID, boundary, posDotNormalSection, negDotNormalSection});
                 //std::cout << "bound " << A << " " << B << " " << C << " boundary " << boundary << " pos " << posDotNormalSection << " neg " << negDotNormalSection << std::endl;
-                addTriangle(model->meshes[0],indes,N,posDotNormalSection,negDotNormalSection,boundary);
+                addTriangle(model->meshes[0],indes,N,posDotNormalSection,negDotNormalSection,boundary,sparePoint);
               }
             } else{
               std::cout << "non boundary triangle has no neighbour? " << std::endl;
@@ -377,7 +389,6 @@ namespace osc {
           int currentVertice = x + verticesPerAxis*z + verticesPerAxis*verticesPerAxis*y;
           vertices[currentVertice] = vec3f(xfrac * size, yfrac * size, zfrac * size);
           cubeMesh->vertex.push_back(vec3f(xfrac * size, yfrac * size, zfrac * size));
-          printf("%f , %f, %f\n",vertices[currentVertice].x,vertices[currentVertice].y,vertices[currentVertice].z);
         }
       }
     }
@@ -409,7 +420,7 @@ namespace osc {
         }
       }
     }
-    std::cout << "added all tetras" << std::endl;
+    std::cout << "added all tetras, num tetras " << tetras.size() << std::endl;
     // now calculate neighbours
     addNeighbours(tetras, numCubes,cubesPerAxis);
     std::cout << "added neighbours" << std::endl;
@@ -428,6 +439,7 @@ namespace osc {
     model->meshes.push_back(cubeMesh);
     addTetraTriangles(vertices,model,tetras);
     std::cout << "added triangles" << std::endl;
+    model->tetras = tetras;
     return model;
   }
   

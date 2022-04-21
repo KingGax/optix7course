@@ -61,6 +61,8 @@ namespace osc {
 
     void setParticleNum(const int numParticles);
 
+    float getParticleSectionAccuracy(const int numParticles);
+
     bool timestepFinished();
   protected:
     // ------------------------------------------------------------------
@@ -152,6 +154,8 @@ namespace osc {
     std::vector<CUDABuffer> normalBufffer;
     std::vector<CUDABuffer> posNegNormalSectionsBuffer;
     std::vector<CUDABuffer> indexBuffer;
+
+    Particle * particles;
     
     //! buffer that keeps the (final, compacted) accel structure
     CUDABuffer asBuffer;

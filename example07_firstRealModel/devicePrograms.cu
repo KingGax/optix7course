@@ -93,7 +93,9 @@ namespace osc {
     float currentTmax = __uint_as_float(optixGetPayload_2());
     float t = optixGetRayTmax();
     //printf("is t > currentTMax %d\n", (t>currentTmax));
+    //printf("t %d %f ", optixGetPrimitiveIndex(), t);
     if(t > currentTmax){
+      
       //printf("getting sbt data\n");
       optixSetPayload_2(__float_as_uint(t));
       const TriangleMeshSBTData &sbtData
@@ -101,7 +103,9 @@ namespace osc {
       //printf("got sbt data\n");
       // compute normal:
      // printf("tri stuff\n");
-      const int   primID = optixGetPrimitiveIndex();
+      const int primID = optixGetPrimitiveIndex();
+      optixSetPayload_4(primID);
+      
       const vec3i index  = sbtData.index[primID];
       const vec3f &A     = sbtData.vertex[index.x];
       const vec3f &B     = sbtData.vertex[index.y];
@@ -119,14 +123,14 @@ namespace osc {
         p.pos += p.vel * t;
         vec3f newDir = p.vel - 2.0f*dot(p.vel, N)*N;
         p.vel = newDir;
-        //printf("HIT BOUNDARY\n");
+        printf("HIT BOUNDARY\n");
         //printf("%f , %f, %f position %f , %f, %f \n", p.vel.x,p.vel.y,p.vel.z, p.pos.x,p.pos.y,p.pos.z);
         optixLaunchParams.bounced[0] = 1;
+        p.section = (neighs[0] != -1) * neighs[0] + (neighs[1] != -1) * neighs[1];
         //printf("written to bounced\n");
         optixTerminateRay();
       } else {
-        float dotProd = dot(p.vel,N); 
-        p.section = (dotProd < 0) * neighs[0] + !(dotProd < 0) * neighs[1];
+       
         //printf("update section %d\n",p.section);
       }
       //const vec3f rayDir = optixGetWorldRayDirection();
@@ -159,6 +163,33 @@ namespace osc {
       prd = vec3f(1.f);
     }*/
     //printf("we in miss\n");
+    int lastPrim = optixGetPayload_4();
+    if(lastPrim  != INT_MAX){
+      const TriangleMeshSBTData &sbtData
+      = *(const TriangleMeshSBTData*)optixGetSbtDataPointer();
+      const vec3i index  = sbtData.index[lastPrim];
+      const vec3f &A     = sbtData.vertex[index.x];
+      const vec3f &B     = sbtData.vertex[index.y];
+      const vec3f &C     = sbtData.vertex[index.z];
+      const vec3f &spare = sbtData.normals[lastPrim];
+      const vec3f N      = normalize(cross(B-A,C-A));
+      const vec2i neighs = sbtData.posNegNormalSections[lastPrim];
+      const bool boundary = (neighs[0] == -1 || neighs[1] == -1);
+      /*printf("\n%f %f %f \n", A[0],A[1],A[2]);
+      printf("%f %f %f \n", B[0],B[1],B[2]);
+      printf("%f %f %f \n", C[0],C[1],C[2]);
+      printf("%f %f %f \n", spare[0],spare[1],spare[2]);
+      printf("options %d %d \n", neighs[0], neighs[1]);*/
+      Particle & p =  *(Particle*)getPRD<Particle>();
+      if(!boundary){
+        float dotProd = dot(p.vel,N); 
+        p.section = (dotProd < 0) * neighs[1] + !(dotProd < 0) * neighs[0];
+        if(dotProd == 0){
+          printf("eww zero dot product");
+        }
+      }
+    }
+    
     Particle & p =  *(Particle*)getPRD<Particle>();
     int zeroIfFirstTrace = (optixGetPayload_3() + 1) & 1; 
     int oneIfFirstTrace = 1 - zeroIfFirstTrace;
@@ -207,14 +238,15 @@ namespace osc {
     //                         + (screen.y - 0.5f) * camera.vertical);
     uint32_t tmaxPayload = __float_as_uint(0); //float max  as an integer
     uint32_t firstTraceFlag = (int)optixLaunchParams.firstTrace;
+    uint32_t lastPrimPayload = INT_MAX;
     //printf("launbching trace\n");
-    //printf("vel %f , %f, %f position %f , %f, %f \n", p->vel.x,p->vel.y,p->vel.z, p->pos.x,p->pos.y,p->pos.z);
+    //printf("start trace: vel %f , %f, %f position %f , %f, %f \n", p->vel.x,p->vel.y,p->vel.z, p->pos.x,p->pos.y,p->pos.z);
     //printf("%f \n", rayDir.x);
     //printf("%f \n", rayDir.y);
     //printf("%f \n", rayDir.z);
     float tmax = optixLaunchParams.firstTrace * 1 + (!optixLaunchParams.firstTrace) * (1-p->simPercent);
     float eps = 5e-4;
-
+    //printf("tmax %f  %d", tmax, (int)optixLaunchParams.firstTrace);
     optixTrace(optixLaunchParams.traversable,
                pos,
                rayDir,
@@ -226,7 +258,7 @@ namespace osc {
                SURFACE_RAY_TYPE,             // SBT offset
                RAY_TYPE_COUNT,               // SBT stride
                SURFACE_RAY_TYPE,             // missSBTIndex 
-               u0, u1 , tmaxPayload, firstTraceFlag);
+               u0, u1 , tmaxPayload, firstTraceFlag, lastPrimPayload);
     //printf("trace launched\n");
 
     //const int r = int(255.99f*pixelColorPRD.x);

@@ -65,7 +65,9 @@ namespace osc {
     std::vector<TriangleMesh *> meshes;
     //! bounding box of all vertices in the model
     box3f bounds;
+    std::vector<Tetra> tetras;
   };
+
 
   Model *loadOBJ(const std::string &objFile);
 }

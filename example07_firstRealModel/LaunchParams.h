@@ -25,6 +25,7 @@ namespace osc {
   struct TriangleMeshSBTData {
     vec3f  color;
     vec3f *vertex;
+    vec3f *normals;
     vec3i *index;
     vec2i *posNegNormalSections; //stores the positive and negative normals
   };

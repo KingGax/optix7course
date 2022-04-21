@@ -48,13 +48,17 @@ namespace osc {
                         /* at */loadedModel->bounds.center()-vec3f(0,0,0),
                         /* up */vec3f(0.f,1.f,0.f) };
       sample.setCamera(camera);
+      const bool checkParticleSection = true;
       int timeStep = 0;
       while(timeStep < numTimesteps){
-        std::cout << "run timestep " << timeStep << "\n";
+        //std::cout << "run timestep " << timeStep << "\n";
         sample.render();
         if(sample.timestepFinished()){
           timeStep++;
-          //std::cout << "next timestep " << "\n";
+          if(checkParticleSection){
+            float accuracy = sample.getParticleSectionAccuracy(particleNum);
+            std::cout << "section tracking accuracy timestep " << timeStep-1 << " " << accuracy << std::endl;
+          }
         }
       }
       std::cout << "done simulating " << "\n";
