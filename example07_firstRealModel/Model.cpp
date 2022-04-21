@@ -423,9 +423,9 @@ namespace osc {
     return model;
   }
   
-  Model *loadOBJ(const std::string &objFile)
+  Model *loadOBJ(int cubesPerAxis)
   {
-    Model* model = addTetraCube(0,2,1,6);
+    Model* model = addTetraCube(0,2,1,cubesPerAxis);
     // of course, you should be using tbb::parallel_for for stuff
     // like this:
     for (auto mesh : model->meshes)

@@ -21,6 +21,7 @@
 #include <GL/gl.h>
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "3rdParty/stb_image_write.h"
+#include <chrono>
 
 /*! \namespace osc - Optix Siggraph Course */
 namespace osc {
@@ -39,29 +40,39 @@ namespace osc {
     
     virtual void run() 
     {
-      const int particleNum = 1;
+      const int numParticles = 1000000;
       const int numTimesteps = 10;
       const vec2i fbSize(vec2i(1200,1024));
       sample.resize(fbSize);
-      sample.setParticleNum(particleNum);
+      sample.setParticleNum(numParticles);
       Camera camera = { /*from*/vec3f(-10.0f, 0, 5.0),
                         /* at */loadedModel->bounds.center()-vec3f(0,0,0),
                         /* up */vec3f(0.f,1.f,0.f) };
       sample.setCamera(camera);
       const bool checkParticleSection = true;
       int timeStep = 0;
+      double simulationTime = 0;
+      double verificationTime = 0;
       while(timeStep < numTimesteps){
         //std::cout << "run timestep " << timeStep << "\n";
+        auto pretrace = std::chrono::system_clock::now();
         sample.render();
+        auto posttrace = std::chrono::system_clock::now();
+        simulationTime +=  std::chrono::duration<double>(posttrace-pretrace).count();
         if(sample.timestepFinished()){
           timeStep++;
           if(checkParticleSection){
-            float accuracy = sample.getParticleSectionAccuracy(particleNum);
-            std::cout << "section tracking accuracy timestep " << timeStep-1 << " " << accuracy << std::endl;
+            auto preVerif = std::chrono::system_clock::now();
+            float accuracy = sample.getParticleSectionAccuracy(numParticles);
+            float fracEscaped = sample.getParticleEscapePercentage(numParticles);
+            std::cout << "section tracking accuracy timestep " << timeStep-1 << " " << accuracy << " escaped " << fracEscaped << std::endl;
+            auto postVerif = std::chrono::system_clock::now();
+            verificationTime +=  std::chrono::duration<double>(postVerif-preVerif).count();
           }
         }
       }
-      std::cout << "done simulating " << "\n";
+      std::cout << "done simulating " << numParticles << " particles with " << loadedModel->meshes[0]->index.size() << " tris " << "\n";
+      std::cout << "simulation time " << simulationTime << " verification time " << verificationTime << "\n";
     }
     
     
@@ -85,20 +96,7 @@ namespace osc {
   extern "C" int main(int ac, char **av)
   {
     try {
-      Model *model = loadOBJ(
-#ifdef _WIN32
-      // on windows, visual studio creates _two_ levels of build dir
-      // (x86/Release)
-      "../../models/sponza.obj"
-#else
-      // on linux, common practice is to have ONE level of build dir
-      // (say, <project>/build/)...
-      "../models/2.71k-split.obj"
-#endif
-                             );
-      //Camera camera = { /*from*/vec3f(-1293.07f, 154.681f, -0.7304f),
-      //                  /* at */model->bounds.center()-vec3f(0,400,0),
-      //                  /* up */vec3f(0.f,1.f,0.f) };
+      Model *model = loadOBJ(50);
       
       Camera camera = { /*from*/vec3f(-10.0f, 0, 0),
                         /* at */model->bounds.center()-vec3f(0,0,0),

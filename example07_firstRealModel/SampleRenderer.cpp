@@ -603,9 +603,22 @@ vec4f bary_tet(const vec3f a, const vec3f b, const vec3f c, const vec3f d, const
     return vec4f(va6*v6, vb6*v6, vc6*v6, vd6*v6);
 } 
 
+  float SampleRenderer::getParticleEscapePercentage(const int numParticles){
+    particleBuffer.download(particles,numParticles);
+    int numEscaped = 0;
+    for(int j = 0; j < numParticles; j++){
+      Particle p = particles[j];
+      vec3f pos = p.pos;
+      if(abs(p.pos[0]) > 2 || abs(p.pos[1]) > 2 || abs(p.pos[2]) > 2){
+        numEscaped++;
+      }
+    }
+    return (float)numEscaped / (float)numParticles;
+  }
+
   float SampleRenderer::getParticleSectionAccuracy(const int numParticles)
   { 
-    const bool calculateCorrectSection = true;
+    const bool calculateCorrectSection = false;
     int realSection[4] = {-5,-5,-5,-5};
     particleBuffer.download(particles,numParticles);
     int numCorrect = 0;
@@ -642,6 +655,7 @@ vec4f bary_tet(const vec3f a, const vec3f b, const vec3f c, const vec3f d, const
 
   void SampleRenderer::setParticleNum(const int numParticles)
   { 
+
     std::cout << "initialising particles " << "\n";
     // resize our cuda frame buffer
     particles = new Particle[numParticles];
@@ -662,8 +676,8 @@ vec4f bary_tet(const vec3f a, const vec3f b, const vec3f c, const vec3f d, const
     float particleoffsetMultiplier = 0.1f;
     for (int i = 0; i < numParticles; i++)
     {
-      vec3f vel = vec3f(0.5,0.4876,0);//randomVector();
-      vec3f posOffset = vec3f(0,0,0);//randomVector();
+      vec3f vel = randomVector();//vec3f(0.5,0.4876,0);
+      vec3f posOffset = randomVector();
       Particle * p = new Particle();
       p->vel = vec3f(vel.x * particleSpeedMultiplier, vel.y * particleSpeedMultiplier, vel.z * particleSpeedMultiplier);
       p->pos = vec3f(particleOrigin.x + posOffset.x * particleoffsetMultiplier,particleOrigin.y + posOffset.y * particleoffsetMultiplier,particleOrigin.z + posOffset.z * particleoffsetMultiplier);
@@ -671,6 +685,10 @@ vec4f bary_tet(const vec3f a, const vec3f b, const vec3f c, const vec3f d, const
       p->section = 0;
       cudaMemcpy((&launchParams.particles[i]),p,sizeof(Particle),cudaMemcpyDefault);
       particles[i] = *p;
+      
+      if((i % (numParticles/10)) == 0){
+        std::cout << "init " << ((float)i / (float)numParticles) * 100 << "%\n";
+      }
       //launchParams.particles.sections[i] = 4;
     }
     //std::cout << launchParams.particles[0].pos << "\n";

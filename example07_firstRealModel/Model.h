@@ -69,5 +69,5 @@ namespace osc {
   };
 
 
-  Model *loadOBJ(const std::string &objFile);
+  Model *loadOBJ(int numCubesPerAxis);
 }

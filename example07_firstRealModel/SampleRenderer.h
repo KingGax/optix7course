@@ -63,6 +63,8 @@ namespace osc {
 
     float getParticleSectionAccuracy(const int numParticles);
 
+    float getParticleEscapePercentage(const int numParticles);
+
     bool timestepFinished();
   protected:
     // ------------------------------------------------------------------
