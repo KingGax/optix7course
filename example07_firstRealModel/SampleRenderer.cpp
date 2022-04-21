@@ -644,13 +644,6 @@ vec4f bary_tet(const vec3f a, const vec3f b, const vec3f c, const vec3f d, const
   { 
     std::cout << "initialising particles " << "\n";
     // resize our cuda frame buffer
-    /*particlePosBuffer.resize(numParticles*sizeof(vec3f));
-    particleVelBuffer.resize(numParticles*sizeof(vec3f));
-    particleSectionBuffer.resize(numParticles*sizeof(int));
-
-    launchParams.particles.positions = (vec3f*)particlePosBuffer.d_pointer();
-    launchParams.particles.velocities = (vec3f*)particleVelBuffer.d_pointer();
-    launchParams.particles.sections = (int*)particleSectionBuffer.d_pointer();*/
     particles = new Particle[numParticles];
     launchParams.frame.size  = vec2i(numParticles,1);
     particleBuffer.resize(numParticles*sizeof(Particle));
@@ -673,7 +666,6 @@ vec4f bary_tet(const vec3f a, const vec3f b, const vec3f c, const vec3f d, const
       vec3f posOffset = vec3f(0,0,0);//randomVector();
       Particle * p = new Particle();
       p->vel = vec3f(vel.x * particleSpeedMultiplier, vel.y * particleSpeedMultiplier, vel.z * particleSpeedMultiplier);
-      //cudaMemcpy((launchParams.particles.velocities+i),&particleVelocity,sizeof(vec3f),cudaMemcpyHostToDevice);
       p->pos = vec3f(particleOrigin.x + posOffset.x * particleoffsetMultiplier,particleOrigin.y + posOffset.y * particleoffsetMultiplier,particleOrigin.z + posOffset.z * particleoffsetMultiplier);
       p->simPercent = 0;
       p->section = 0;

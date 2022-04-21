@@ -246,16 +246,12 @@ namespace osc {
               } 
               int posDotNormalSection = (dotProd > 0) ? currentTetra.sectionID : neighbourMatch;
               int negDotNormalSection = (dotProd > 0) ? neighbourMatch : currentTetra.sectionID;
-              //std::cout << " add tri for section " << currentTetra.sectionID << std::endl;
-              //std::cout << A << " " << B << " " << C << " boundary " << boundary << " pos " << posDotNormalSection << " neg " << negDotNormalSection << std::endl;
-              //triangles.push_back({A, B, C, N, N, N, materialID, boundary, posDotNormalSection, negDotNormalSection});
               addTriangle(model->meshes[0],indes,N,posDotNormalSection,negDotNormalSection,boundary,sparePoint);
             }
           }
         }
         else // if not a collision boundary, add all triangles - need to change for general case
         {
-          //std::cout << " not boundary " << currentTetra.sectionID << std::endl;
           if (currentTetra.neighbours.size() < 4)
           {
             std::cout << "non boundary tetra has less than 4 neighbours?? " << std::endl;
@@ -272,9 +268,7 @@ namespace osc {
                 vec3f sparePoint = vertices[currentTetra.indes[indexPermutations[i][3]]];
                 bool boundary = currentTetra.boundary;
                 int materialID = currentTetra.materialID;
-                //std::cout << "JHERE " << currentTetra.neighbours[i]->indes << " " << currentTetra.indes << "\n";
 
-                // int connectedSection = currentTetra.neighbours[i]->
                 vec3i indes = vec3i(currentTetra.indes[indexPermutations[i][0]],currentTetra.indes[indexPermutations[i][1]],currentTetra.indes[indexPermutations[i][2]]);
                 const vec3f N = normalize(cross(B - A, C - A));
                 const vec3f aToSpare = sparePoint - A;
@@ -286,37 +280,25 @@ namespace osc {
                   std::cout << "ZERO non bound" << "\n";
                   std::cout << A << " " << B << " " << C << " " << sparePoint << " norm average " << N << aToSpare << "\n";
                 }
-                //std::cout << currentTetra.sectionID << " <> " << neighbourID << std::endl;
-                //triangles.push_back({A, B, C, N, N, N, materialID, boundary, posDotNormalSection, negDotNormalSection});
-                //std::cout << "bound " << A << " " << B << " " << C << " boundary " << boundary << " pos " << posDotNormalSection << " neg " << negDotNormalSection << std::endl;
                 addTriangle(model->meshes[0],indes,N,posDotNormalSection,negDotNormalSection,boundary,sparePoint);
               }
             } else{
               std::cout << "non boundary triangle has no neighbour? " << std::endl;
               throw;
             }
-            //std::cout << " add tri for section " << currentTetra.sectionID << std::endl;
             
           }
         }
       }
 
       constructedTetras.at(currentTetra.sectionID) = true;
-      for (int i = 0; i < constructedTetras.size(); i++)
-      {
-        //std::cout << " constructed " << i << " " << constructedTetras.at(i) << std::endl;
-      }
+
       for (int i = 0; i < currentTetra.neighbours.size(); i++)
       {
         int neighbourID = currentTetra.neighbours.at(i)->sectionID;
-        //std::cout << " neighbour " << neighbourID << " " << constructedTetras.at(i) << std::endl;
         if (!constructedTetras.at(neighbourID))
         {
           constructionIndexQueue.push_back(neighbourID);
-        }
-        else
-        {
-          //std::cout << " already constructed " << neighbourID << " " << constructedTetras.at(neighbourID) << std::endl;
         }
       }
       if (constructionIndexQueue.size() <= 0)
@@ -324,7 +306,6 @@ namespace osc {
 
         constructed = true;
       }
-      //std::cout << " tetras in queue " << constructionIndexQueue.size() << std::endl;
     }
   }
 
@@ -434,7 +415,6 @@ namespace osc {
       } else{
         tetras[i].boundary = true;
       }
-      //std::cout << i << " indes " << tetras[i].indes << "boundary " << tetras[i].boundary <<"\n";
     }
     model->meshes.push_back(cubeMesh);
     addTetraTriangles(vertices,model,tetras);
