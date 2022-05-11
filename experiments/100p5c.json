@@ -1,4 +1,6 @@
 {
     "NumCubes":5,
-    "NumParticles":100
+    "NumParticles":100,
+    "Timesteps":10,
+    "Delta":0.2
 }
