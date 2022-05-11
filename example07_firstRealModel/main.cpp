@@ -22,9 +22,11 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "3rdParty/stb_image_write.h"
 #include <chrono>
+#include "RSJparser.tcc"
 
 /*! \namespace osc - Optix Siggraph Course */
-namespace osc {
+namespace osc
+{
 
   struct SampleWindow
   {
@@ -32,90 +34,126 @@ namespace osc {
                  const Model *model,
                  const Camera &camera,
                  const float worldScale)
-      : sample(model)
+        : sample(model)
     {
       sample.setCamera(camera);
       loadedModel = model;
     }
-    
-    virtual void run() 
+
+    virtual void run()
     {
       const int numParticles = 1000000;
       const int numTimesteps = 10;
-      const vec2i fbSize(vec2i(1200,1024));
+      const vec2i fbSize(vec2i(1200, 1024));
       sample.resize(fbSize);
       sample.setParticleNum(numParticles);
-      Camera camera = { /*from*/vec3f(-10.0f, 0, 5.0),
-                        /* at */loadedModel->bounds.center()-vec3f(0,0,0),
-                        /* up */vec3f(0.f,1.f,0.f) };
+      Camera camera = {/*from*/ vec3f(-10.0f, 0, 5.0),
+                       /* at */ loadedModel->bounds.center() - vec3f(0, 0, 0),
+                       /* up */ vec3f(0.f, 1.f, 0.f)};
       sample.setCamera(camera);
       const bool checkParticleSection = true;
       int timeStep = 0;
       double simulationTime = 0;
       double verificationTime = 0;
-      while(timeStep < numTimesteps){
-        //std::cout << "run timestep " << timeStep << "\n";
+      while (timeStep < numTimesteps)
+      {
+        // std::cout << "run timestep " << timeStep << "\n";
         auto pretrace = std::chrono::system_clock::now();
         sample.render();
         auto posttrace = std::chrono::system_clock::now();
-        simulationTime +=  std::chrono::duration<double>(posttrace-pretrace).count();
-        if(sample.timestepFinished()){
+        simulationTime += std::chrono::duration<double>(posttrace - pretrace).count();
+        if (sample.timestepFinished())
+        {
           timeStep++;
-          if(checkParticleSection){
+          if (checkParticleSection)
+          {
             auto preVerif = std::chrono::system_clock::now();
             float accuracy = sample.getParticleSectionAccuracy(numParticles);
             float fracEscaped = sample.getParticleEscapePercentage(numParticles);
-            std::cout << "section tracking accuracy timestep " << timeStep-1 << " " << accuracy << " escaped " << fracEscaped << std::endl;
+            std::cout << "section tracking accuracy timestep " << timeStep - 1 << " " << accuracy << " escaped " << fracEscaped << std::endl;
             auto postVerif = std::chrono::system_clock::now();
-            verificationTime +=  std::chrono::duration<double>(postVerif-preVerif).count();
+            verificationTime += std::chrono::duration<double>(postVerif - preVerif).count();
           }
         }
       }
-      std::cout << "done simulating " << numParticles << " particles with " << loadedModel->meshes[0]->index.size() << " tris " << "\n";
+      std::cout << "done simulating " << numParticles << " particles with " << loadedModel->meshes[0]->index.size() << " tris "
+                << "\n";
       std::cout << "simulation time " << simulationTime << " verification time " << verificationTime << "\n";
     }
-    
-    
-    virtual void resize(const vec2i &newSize) 
+
+    virtual void resize(const vec2i &newSize)
     {
       fbSize = newSize;
       sample.resize(newSize);
-      pixels.resize(newSize.x*newSize.y);
+      pixels.resize(newSize.x * newSize.y);
     }
 
-    const Model*                loadedModel; 
-    vec2i                 fbSize;
-    GLuint                fbTexture {0};
-    SampleRenderer        sample;
+    const Model *loadedModel;
+    vec2i fbSize;
+    GLuint fbTexture{0};
+    SampleRenderer sample;
     std::vector<uint32_t> pixels;
   };
-  
-  
+
   /*! main entry point to this example - initially optix, print hello
     world, then exit */
   extern "C" int main(int ac, char **av)
   {
-    try {
-      Model *model = loadOBJ(50);
+    try
+    {
+      std::string baseExperimentPath = "../experiments/";
+      std::string experimentPath = "";
+      std::string defaultExperiment = "100p5c.json";
+      for (int i = 1; i < ac; i++)
+      {
+        const std::string arg = av[i];
+        if (arg == "-exp")
+        {
+          experimentPath = baseExperimentPath + av[++i];
+        }
+      }
+      std::ifstream inFile;
+      if(experimentPath == ""){
+        std::cout << "No experiment specified with -exp flag, using default" << "\n";
+        experimentPath = baseExperimentPath + defaultExperiment;
+      }
+      std::cout << "Loading experiment at " + experimentPath << "\n";
+      inFile.open(experimentPath); // open the input file
       
-      Camera camera = { /*from*/vec3f(-10.0f, 0, 0),
-                        /* at */model->bounds.center()-vec3f(0,0,0),
-                        /* up */vec3f(0.f,1.f,0.f) };
+      std::stringstream strStream;
+      strStream << inFile.rdbuf();       // read the file
+      std::string str = strStream.str(); // str holds the content of the file
+
+      RSJresource my_json(str);
+      int numParticles = my_json["NumParticles"].as<int>(-1);
+      int cubesPerAxis = my_json["NumCubes"].as<int>(-1);
+      std::cout << "Running " << numParticles << " particles" << std::endl; 
+      std::cout << "Creating cube with " << cubesPerAxis << " cubes per axis" << std::endl;  
+      if(numParticles <= 0 || cubesPerAxis <= 0) {
+        std::cout << "invalid num of particles or cubes per axis in experiment\n";
+        throw;
+      }  
+      Model *model = loadOBJ(cubesPerAxis);
+
+      Camera camera = {/*from*/ vec3f(-10.0f, 0, 0),
+                       /* at */ model->bounds.center() - vec3f(0, 0, 0),
+                       /* up */ vec3f(0.f, 1.f, 0.f)};
       // something approximating the scale of the world, so the
       // camera knows how much to move for any given user interaction:
       const float worldScale = length(model->bounds.span());
 
       SampleWindow *window = new SampleWindow("Optix 7 Course Example",
-                                              model,camera,worldScale);
+                                              model, camera, worldScale);
       window->run();
-      
-    } catch (std::runtime_error& e) {
+    }
+    catch (std::runtime_error &e)
+    {
       std::cout << GDT_TERMINAL_RED << "FATAL ERROR: " << e.what()
                 << GDT_TERMINAL_DEFAULT << std::endl;
-	  std::cout << "Did you forget to copy sponza.obj and sponza.mtl into your optix7course/models directory?" << std::endl;
-	  exit(1);
+      std::cout << "Did you forget to copy sponza.obj and sponza.mtl into your optix7course/models directory?" << std::endl;
+      exit(1);
     }
     return 0;
   }
-  
+
 } // ::osc
