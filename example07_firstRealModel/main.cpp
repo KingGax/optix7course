@@ -14,7 +14,7 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-#include "SampleRenderer.h"
+#include "ParticleSimulation.h"
 
 // our helper library for window handling
 #include "glfWindow/GLFWindow.h"
@@ -31,7 +31,7 @@ namespace osc
   struct Experiment
   {
     Experiment(const Model *model, int _numParticles)
-        : sample(model)
+        : simulation(model)
     {
       loadedModel = model;
       numParticles = _numParticles;
@@ -41,7 +41,7 @@ namespace osc
     {
       
       const int numTimesteps = 10;
-      sample.setParticleNum(numParticles);
+      simulation.setParticleNum(numParticles);
       const bool checkParticleSection = true;
       int timeStep = 0;
       double simulationTime = 0;
@@ -50,17 +50,17 @@ namespace osc
       {
         // std::cout << "run timestep " << timeStep << "\n";
         auto pretrace = std::chrono::system_clock::now();
-        sample.render();
+        simulation.render();
         auto posttrace = std::chrono::system_clock::now();
         simulationTime += std::chrono::duration<double>(posttrace - pretrace).count();
-        if (sample.timestepFinished())
+        if (simulation.timestepFinished())
         {
           timeStep++;
           if (checkParticleSection)
           {
             auto preVerif = std::chrono::system_clock::now();
-            float accuracy = sample.getParticleSectionAccuracy(numParticles);
-            float fracEscaped = sample.getParticleEscapePercentage(numParticles);
+            float accuracy = simulation.getParticleSectionAccuracy(numParticles);
+            float fracEscaped = simulation.getParticleEscapePercentage(numParticles);
             std::cout << "section tracking accuracy timestep " << timeStep - 1 << " " << accuracy << " escaped " << fracEscaped << std::endl;
             auto postVerif = std::chrono::system_clock::now();
             verificationTime += std::chrono::duration<double>(postVerif - preVerif).count();
@@ -74,7 +74,7 @@ namespace osc
 
     const Model *loadedModel;
     vec2i fbSize;
-    SampleRenderer sample;
+    ParticleSimulation simulation;
     int numParticles = 10;
   };
 

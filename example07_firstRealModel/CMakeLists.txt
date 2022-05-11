@@ -25,8 +25,8 @@ add_executable(ex07_firstRealModel
   optix7.h
   CUDABuffer.h
   LaunchParams.h
-  SampleRenderer.h
-  SampleRenderer.cpp
+  ParticleSimulation.h
+  ParticleSimulation.cpp
   Model.h
   Model.cpp
   main.cpp
