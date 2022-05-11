@@ -28,29 +28,20 @@
 namespace osc
 {
 
-  struct SampleWindow
+  struct Experiment
   {
-    SampleWindow(const std::string &title,
-                 const Model *model,
-                 const Camera &camera,
-                 const float worldScale)
+    Experiment(const Model *model, int _numParticles)
         : sample(model)
     {
-      sample.setCamera(camera);
       loadedModel = model;
+      numParticles = _numParticles;
     }
 
     virtual void run()
     {
-      const int numParticles = 1000000;
+      
       const int numTimesteps = 10;
-      const vec2i fbSize(vec2i(1200, 1024));
-      sample.resize(fbSize);
       sample.setParticleNum(numParticles);
-      Camera camera = {/*from*/ vec3f(-10.0f, 0, 5.0),
-                       /* at */ loadedModel->bounds.center() - vec3f(0, 0, 0),
-                       /* up */ vec3f(0.f, 1.f, 0.f)};
-      sample.setCamera(camera);
       const bool checkParticleSection = true;
       int timeStep = 0;
       double simulationTime = 0;
@@ -81,18 +72,10 @@ namespace osc
       std::cout << "simulation time " << simulationTime << " verification time " << verificationTime << "\n";
     }
 
-    virtual void resize(const vec2i &newSize)
-    {
-      fbSize = newSize;
-      sample.resize(newSize);
-      pixels.resize(newSize.x * newSize.y);
-    }
-
     const Model *loadedModel;
     vec2i fbSize;
-    GLuint fbTexture{0};
     SampleRenderer sample;
-    std::vector<uint32_t> pixels;
+    int numParticles = 10;
   };
 
   /*! main entry point to this example - initially optix, print hello
@@ -135,16 +118,10 @@ namespace osc
       }  
       Model *model = loadOBJ(cubesPerAxis);
 
-      Camera camera = {/*from*/ vec3f(-10.0f, 0, 0),
-                       /* at */ model->bounds.center() - vec3f(0, 0, 0),
-                       /* up */ vec3f(0.f, 1.f, 0.f)};
-      // something approximating the scale of the world, so the
-      // camera knows how much to move for any given user interaction:
-      const float worldScale = length(model->bounds.span());
 
-      SampleWindow *window = new SampleWindow("Optix 7 Course Example",
-                                              model, camera, worldScale);
-      window->run();
+
+      Experiment *experiment = new Experiment(model, numParticles);
+      experiment->run();
     }
     catch (std::runtime_error &e)
     {

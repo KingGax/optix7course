@@ -39,22 +39,13 @@ namespace osc {
   
   struct LaunchParams
   {
-    struct {
-      uint32_t *colorBuffer;
-      vec2i     size;
-    } frame;
+
+    int launchSize;
 
     Particle * particles;
     bool firstTrace;
     
     int * bounced; 
-    
-    struct {
-      vec3f position;
-      vec3f direction;
-      vec3f horizontal;
-      vec3f vertical;
-    } camera;
 
     OptixTraversableHandle traversable;
   };

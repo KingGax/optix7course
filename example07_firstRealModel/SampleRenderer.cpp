@@ -504,7 +504,6 @@ namespace osc {
   {
     // sanity check: make sure we launch only after first resize is
     // already done:
-    if (launchParams.frame.size.x == 0) return;
     int init = 0;
     cudaMemcpy(launchParams.bounced,&init,sizeof(int),cudaMemcpyDefault);
     launchParamsBuffer.upload(&launchParams,1);
@@ -517,7 +516,7 @@ namespace osc {
                             launchParamsBuffer.sizeInBytes,
                             &sbt,
                             /*! dimensions of the launch: */
-                            launchParams.frame.size.x,
+                            launchParams.launchSize,
                             1,
                             1
                             ));
@@ -533,40 +532,6 @@ namespace osc {
       launchParams.firstTrace = false;
     }
     //std::cout << "sync check done" << "\n";
-  }
-
-  /*! set camera to render with */
-  void SampleRenderer::setCamera(const Camera &camera)
-  {
-    lastSetCamera = camera;
-    launchParams.camera.position  = camera.from;
-    launchParams.camera.direction = normalize(camera.at-camera.from);
-    const float cosFovy = 0.66f;
-    const float aspect = launchParams.frame.size.x / float(launchParams.frame.size.y);
-    launchParams.camera.horizontal
-      = cosFovy * aspect * normalize(cross(launchParams.camera.direction,
-                                           camera.up));
-    launchParams.camera.vertical
-      = cosFovy * normalize(cross(launchParams.camera.horizontal,
-                                  launchParams.camera.direction));
-  }
-  
-  /*! resize frame buffer to given resolution */
-  void SampleRenderer::resize(const vec2i &newSize)
-  {
-    // if window minimized
-    if (newSize.x == 0 | newSize.y == 0) return;
-    
-    // resize our cuda frame buffer
-    colorBuffer.resize(newSize.x*newSize.y*sizeof(uint32_t));
-
-    // update the launch parameters that we'll pass to the optix
-    // launch:
-    launchParams.frame.size  = newSize;
-    launchParams.frame.colorBuffer = (uint32_t*)colorBuffer.d_pointer();
-
-    // and re-set the camera, since aspect may have changed
-    setCamera(lastSetCamera);
   }
 
 
@@ -659,7 +624,7 @@ vec4f bary_tet(const vec3f a, const vec3f b, const vec3f c, const vec3f d, const
     std::cout << "initialising particles " << "\n";
     // resize our cuda frame buffer
     particles = new Particle[numParticles];
-    launchParams.frame.size  = vec2i(numParticles,1);
+    launchParams.launchSize  = numParticles;
     particleBuffer.resize(numParticles*sizeof(Particle));
     launchParams.particles = (Particle*)particleBuffer.d_pointer();
     bounced = new int[1];
@@ -696,13 +661,6 @@ vec4f bary_tet(const vec3f a, const vec3f b, const vec3f c, const vec3f d, const
 
     std::cout << "set particles " << "\n";
 
-  }
-
-  /*! download the rendered color buffer */
-  void SampleRenderer::downloadPixels(uint32_t h_pixels[])
-  {
-    colorBuffer.download(h_pixels,
-                         launchParams.frame.size.x*launchParams.frame.size.y);
   }
   
 } // ::osc
