@@ -623,7 +623,7 @@ vec4f bary_tet(const vec3f a, const vec3f b, const vec3f c, const vec3f d, const
     return (float)numCorrect / (float)numParticles;
   }
 
-  void ParticleSimulation::setParticleNum(const int numParticles)
+  void ParticleSimulation::initialiseSimulation(const int numParticles, const float delta)
   { 
 
     std::cout << "initialising particles " << "\n";
@@ -636,6 +636,7 @@ vec4f bary_tet(const vec3f a, const vec3f b, const vec3f c, const vec3f d, const
     bounced[0] = 0;
     bouncedBuffer.resize(sizeof(int));
     launchParams.firstTrace = true;
+    launchParams.delta = delta;
     launchParams.bounced = (int*)bouncedBuffer.d_pointer();
     int init = 0;
     cudaMemcpy(launchParams.bounced,&init,sizeof(int),cudaMemcpyDefault);

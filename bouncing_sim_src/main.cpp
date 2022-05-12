@@ -43,7 +43,7 @@ namespace osc
     virtual void run()
     {
       
-      simulation.setParticleNum(numParticles);
+      simulation.initialiseSimulation(numParticles,delta);
       const bool checkParticleSection = true;
       const bool printParticles = true;
       int timeStep = 0;

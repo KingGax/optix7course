@@ -46,6 +46,7 @@ namespace osc {
     bool firstTrace;
     
     int * bounced; 
+    float delta;
 
     OptixTraversableHandle traversable;
   };

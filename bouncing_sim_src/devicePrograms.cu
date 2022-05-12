@@ -111,7 +111,7 @@ namespace osc {
         const vec3f &C     = sbtData.vertex[index.z];
         const vec3f N      = normalize(cross(B-A,C-A));
         p.simPercent = firstTraceMultiplier * p.simPercent + t;
-        p.pos += p.vel * t;
+        p.pos += p.vel * t * optixLaunchParams.delta;
         vec3f newDir = p.vel - 2.0f*dot(p.vel, N)*N;
         p.vel = newDir;
         //printf("HIT BOUNDARY\n");
@@ -159,7 +159,7 @@ namespace osc {
     Particle & p =  *(Particle*)getPRD<Particle>();
     int zeroIfFirstTrace = (optixGetPayload_3() + 1) & 1; 
     int oneIfFirstTrace = 1 - zeroIfFirstTrace;
-    p.pos = p.pos + p.vel * oneIfFirstTrace + zeroIfFirstTrace * (1-p.simPercent) * p.vel;
+    p.pos = p.pos + p.vel * oneIfFirstTrace * optixLaunchParams.delta + zeroIfFirstTrace * (1-p.simPercent) * p.vel * optixLaunchParams.delta;
     p.simPercent = 1;
   }
 
@@ -181,7 +181,7 @@ namespace osc {
     
     // generate ray direction
     vec3f pos = p->pos;
-    vec3f rayDir = p->vel;
+    vec3f rayDir = p->vel * optixLaunchParams.delta;
 
     uint32_t tmaxPayload = __float_as_uint(0); 
     uint32_t firstTraceFlag = (int)optixLaunchParams.firstTrace;

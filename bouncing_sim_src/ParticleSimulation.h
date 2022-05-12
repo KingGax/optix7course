@@ -43,7 +43,7 @@ namespace osc {
 
     void writeParticles(const int numParticles, const int timestep, std::string name);
 
-    void setParticleNum(const int numParticles);
+    void initialiseSimulation(const int numParticles,const float delta);
 
     float getParticleSectionAccuracy(const int numParticles);
 
