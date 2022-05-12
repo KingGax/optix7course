@@ -133,7 +133,7 @@ namespace osc {
   // need to have _some_ dummy function to set up a valid SBT
   // ------------------------------------------------------------------------------
 
-  __device__ void calculatePhysics(Particle * p, const float temp, const vec3f sectionAcceleration, const float dt){
+  __device__ void calculatePhysics(Particle * p, const float temp, const vec3f sectionAcceleration, const float dt, const int randomSeed){
         vec3f gas_vel = sectionAcceleration;
         //printf("%f\n",temp);
 
@@ -161,6 +161,19 @@ namespace osc {
         const vec3f drag_force = (drag_coefficient * reynolds * 0.5f * gas_density * relative_drop_vel_mag * droplet_frontal_area) * relative_drop_vel;
         const vec3f a1 = ((drag_force) / mass) * dt;
         p->vel = p->vel + a1 * dt;
+
+        int launchIndex = optixGetLaunchIndex().x;
+        bool newParticle = ((launchIndex & 63) == 0);
+        if(newParticle){
+          int writeAddress = atomicAdd(optixLaunchParams.activeParticleCount,1);
+          if(writeAddress < optixLaunchParams.maxParticles){
+            float particleVel = length(p->vel);
+            vec3f dir = particleVel*normalize(cross(p->vel,vec3f(1,0,0)));
+            optixLaunchParams.particles[writeAddress].section = p->section;
+            optixLaunchParams.particles[writeAddress].pos = p->pos;
+            optixLaunchParams.particles[writeAddress].vel = dir;
+          }
+        }
   }
 
   extern "C" __global__ void __miss__radiance()
@@ -198,7 +211,7 @@ namespace osc {
       accel = sbtData.sectionData[p.section].accel;
       temp = 288.6;
     }
-    calculatePhysics(&p,temp, accel, delta);
+    calculatePhysics(&p,temp, accel, delta, optixLaunchParams.timestep);
   }
 
 

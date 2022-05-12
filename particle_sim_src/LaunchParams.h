@@ -49,12 +49,15 @@ namespace osc {
   {
 
     int launchSize;
+    int timestep;
 
     Particle * particles;
     bool firstTrace;
     
     int * bounced; 
     float delta;
+    int * activeParticleCount;
+    int maxParticles;
 
     OptixTraversableHandle traversable;
   };

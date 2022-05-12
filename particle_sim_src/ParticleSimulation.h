@@ -38,12 +38,11 @@ namespace osc {
       optix, creates module, pipeline, programs, SBT, etc. */
     ParticleSimulation(const Model *model);
 
-    /*! render one frame */
-    void runTimestep();
+    void runTimestep(int timestep);
 
     void writeParticles(const int numParticles, const int timestep, std::string name);
 
-    void initialiseSimulation(const int numParticles,const float delta);
+    void initialiseSimulation(const int numParticles, const float delta, int maxParticleMultiplier);
 
     float getParticleSectionAccuracy(const int numParticles);
 
@@ -128,6 +127,7 @@ namespace osc {
     CUDABuffer particleVelBuffer;
     CUDABuffer particleSectionBuffer;
     CUDABuffer bouncedBuffer;
+    CUDABuffer activeParticleBuffer;
     
     /*! the model we are going to trace rays against */
     const Model *model;
@@ -144,6 +144,7 @@ namespace osc {
     //! buffer that keeps the (final, compacted) accel structure
     CUDABuffer asBuffer;
     int * bounced;
+    int * activeParticleCount;
   };
 
 } // ::osc

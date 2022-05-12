@@ -43,7 +43,8 @@ namespace osc
     virtual void run()
     {
       
-      simulation.initialiseSimulation(numParticles,delta);
+      simulation.initialiseSimulation(numParticles,delta, maxParticleMultiplier);
+      maxParticles = numParticles * maxParticleMultiplier;
       const bool checkParticleSection = true;
       const bool printParticles = true;
       int timeStep = 0;
@@ -54,7 +55,7 @@ namespace osc
       {
         // std::cout << "run timestep " << timeStep << "\n";
         auto pretrace = std::chrono::system_clock::now();
-        simulation.runTimestep();
+        simulation.runTimestep(timeStep);
         auto posttrace = std::chrono::system_clock::now();
         simulationTime += std::chrono::duration<double>(posttrace - pretrace).count();
         if (simulation.timestepFinished())
@@ -70,7 +71,7 @@ namespace osc
             verificationTime += std::chrono::duration<double>(postVerif - preVerif).count();
           }
           if(printParticles){
-            simulation.writeParticles(numParticles, timeStep, experimentName);
+            simulation.writeParticles(maxParticles, timeStep, experimentName);
           }
         }
       }
@@ -85,6 +86,8 @@ namespace osc
     int numParticles = 10;
     float delta = 1;
     int numTimesteps = 10;
+    const int maxParticleMultiplier = 2;
+    int maxParticles;
     std::string experimentName = "";
   };
 
@@ -132,7 +135,7 @@ namespace osc
       Model *model = loadOBJ(cubesPerAxis);
 
       std::string experimentName = std::to_string(numParticles) + "particles-" + std::to_string(cubesPerAxis) + "cubes-" + std::to_string(timesteps) + "timestep-" + std::to_string(delta) + "delta";
-      
+
       Experiment *experiment = new Experiment(model, numParticles,timesteps,delta, experimentName);
       experiment->run();
     }

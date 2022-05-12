@@ -505,12 +505,15 @@ namespace osc {
 
 
   /*! render one frame */
-  void ParticleSimulation::runTimestep()
+  void ParticleSimulation::runTimestep(int timestep)
   {
     // sanity check: make sure we launch only after first resize is
     // already done:
     int init = 0;
+    int activeParticles[1];
+    cudaMemcpy(activeParticles,launchParams.activeParticleCount,sizeof(int),cudaMemcpyDeviceToHost);
     cudaMemcpy(launchParams.bounced,&init,sizeof(int),cudaMemcpyDefault);
+    launchParams.timestep = timestep;
     launchParamsBuffer.upload(&launchParams,1);
       
     //std::cout << "launch timee" << "\n";
@@ -521,7 +524,7 @@ namespace osc {
                             launchParamsBuffer.sizeInBytes,
                             &sbt,
                             /*! dimensions of the launch: */
-                            launchParams.launchSize,
+                            activeParticles[0],
                             1,
                             1
                             ));
@@ -627,24 +630,29 @@ vec4f bary_tet(const vec3f a, const vec3f b, const vec3f c, const vec3f d, const
     return (float)numCorrect / (float)numParticles;
   }
 
-  void ParticleSimulation::initialiseSimulation(const int numParticles, const float delta)
+  void ParticleSimulation::initialiseSimulation(const int numParticles, const float delta, int maxParticleMultiplier)
   { 
 
     std::cout << "initialising particles " << "\n";
     // resize our cuda frame buffer
-    particles = new Particle[numParticles];
+    int maxParticles = numParticles * maxParticleMultiplier;
+    particles = new Particle[maxParticles];
     launchParams.launchSize  = numParticles;
-    particleBuffer.resize(numParticles*sizeof(Particle));
+    particleBuffer.resize(maxParticles*sizeof(Particle));
     launchParams.particles = (Particle*)particleBuffer.d_pointer();
     bounced = new int[1];
     bounced[0] = 0;
+    activeParticleCount = new int[1];
+    activeParticleCount[0] = numParticles;
+    activeParticleBuffer.resize(sizeof(int));
     bouncedBuffer.resize(sizeof(int));
     launchParams.firstTrace = true;
     launchParams.delta = delta;
     launchParams.bounced = (int*)bouncedBuffer.d_pointer();
+    launchParams.activeParticleCount = (int*)activeParticleBuffer.d_pointer();
     int init = 0;
     cudaMemcpy(launchParams.bounced,&init,sizeof(int),cudaMemcpyDefault);
-
+    cudaMemcpy(launchParams.activeParticleCount,&activeParticleCount[0],sizeof(int),cudaMemcpyDefault);
     std::srand(42);
     vec3f particleOrigin = vec3f(1,1,1);
     float particleSpeedMultiplier = 0.4;
@@ -654,23 +662,32 @@ vec4f bary_tet(const vec3f a, const vec3f b, const vec3f c, const vec3f d, const
     vec3f startingPos = 0.25f * (model->tetras[startingTetra].A + model->tetras[startingTetra].B + model->tetras[startingTetra].C + model->tetras[startingTetra].D);
     particleOrigin = startingPos;
     std::cout << "particle origin " << particleOrigin << "\n";
-    for (int i = 0; i < numParticles; i++)
+    for (int i = 0; i < maxParticles; i++)
     {
-      vec3f vel = randomVector();//vec3f(0.5,0.4876,0);
-      vec3f posOffset = randomVector();
-      Particle * p = new Particle();
-      p->vel = vec3f(vel.x * particleSpeedMultiplier, vel.y * particleSpeedMultiplier, vel.z * particleSpeedMultiplier);
-      p->pos = vec3f(particleOrigin.x + posOffset.x * particleoffsetMultiplier,particleOrigin.y + posOffset.y * particleoffsetMultiplier,particleOrigin.z + posOffset.z * particleoffsetMultiplier);
-      p->simPercent = 0;
-      p->section = startingTetra;
-      cudaMemcpy((&launchParams.particles[i]),p,sizeof(Particle),cudaMemcpyDefault);
-      particles[i] = *p;
+      if(i < numParticles){
+        vec3f vel = randomVector();//vec3f(0.5,0.4876,0);
+        vec3f posOffset = randomVector();
+        Particle * p = new Particle();
+        p->vel = vec3f(vel.x * particleSpeedMultiplier, vel.y * particleSpeedMultiplier, vel.z * particleSpeedMultiplier);
+        p->pos = vec3f(particleOrigin.x + posOffset.x * particleoffsetMultiplier,particleOrigin.y + posOffset.y * particleoffsetMultiplier,particleOrigin.z + posOffset.z * particleoffsetMultiplier);
+        p->simPercent = 0;
+        p->section = startingTetra;
+        
+        particles[i] = *p;
+      } else {
+        Particle * p = new Particle();
+        p->vel = vec3f(0,0,0);
+        p->section = -1;
+        particles[i] = *p;
+      }
       
-      if((i % (numParticles/10)) == 0){
-        std::cout << "init " << ((float)i / (float)numParticles) * 100 << "%\n";
+      
+      if((i % (maxParticles/10)) == 0){
+        std::cout << "init " << ((float)i / (float)maxParticles) * 100 << "%\n";
       }
       //launchParams.particles.sections[i] = 4;
     }
+    cudaMemcpy((&launchParams.particles[0]),particles,sizeof(Particle)*maxParticles,cudaMemcpyDefault);
     //std::cout << launchParams.particles[0].pos << "\n";
 
 
