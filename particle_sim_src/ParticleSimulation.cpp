@@ -512,8 +512,13 @@ namespace osc {
     int init = 0;
     int activeParticles[1];
     cudaMemcpy(activeParticles,launchParams.activeParticleCount,sizeof(int),cudaMemcpyDeviceToHost);
+    if(activeParticles[0] > launchParams.maxParticles){
+      activeParticles[0] = launchParams.maxParticles;
+      cudaMemcpy(launchParams.activeParticleCount,activeParticles,sizeof(int),cudaMemcpyHostToDevice);
+    }
     cudaMemcpy(launchParams.bounced,&init,sizeof(int),cudaMemcpyDefault);
     launchParams.timestep = timestep;
+    
     launchParamsBuffer.upload(&launchParams,1);
       
     //std::cout << "launch timee" << "\n";
@@ -666,6 +671,9 @@ vec4f bary_tet(const vec3f a, const vec3f b, const vec3f c, const vec3f d, const
     {
       if(i < numParticles){
         vec3f vel = randomVector();//vec3f(0.5,0.4876,0);
+        vel.x = abs(vel.x);
+        vel.y = abs(vel.y);
+        vel.z = abs(vel.z);
         vec3f posOffset = randomVector();
         Particle * p = new Particle();
         p->vel = vec3f(vel.x * particleSpeedMultiplier, vel.y * particleSpeedMultiplier, vel.z * particleSpeedMultiplier);
@@ -688,6 +696,7 @@ vec4f bary_tet(const vec3f a, const vec3f b, const vec3f c, const vec3f d, const
       //launchParams.particles.sections[i] = 4;
     }
     cudaMemcpy((&launchParams.particles[0]),particles,sizeof(Particle)*maxParticles,cudaMemcpyDefault);
+    launchParams.maxParticles = maxParticles;
     //std::cout << launchParams.particles[0].pos << "\n";
 
 

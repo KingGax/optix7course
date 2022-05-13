@@ -163,10 +163,12 @@ namespace osc {
         p->vel = p->vel + a1 * dt;
 
         int launchIndex = optixGetLaunchIndex().x;
-        bool newParticle = ((launchIndex & 63) == 0);
+        bool newParticle = (((launchIndex+randomSeed) & 63) == 0);
         if(newParticle){
           int writeAddress = atomicAdd(optixLaunchParams.activeParticleCount,1);
+          //printf("%d\n",optixLaunchParams.activeParticleCount[0]);
           if(writeAddress < optixLaunchParams.maxParticles){
+            //printf("%d %d\n",writeAddress,optixLaunchParams.maxParticles);
             float particleVel = length(p->vel);
             vec3f dir = particleVel*normalize(cross(p->vel,vec3f(1,0,0)));
             optixLaunchParams.particles[writeAddress].section = p->section;

@@ -46,7 +46,7 @@ namespace osc
       simulation.initialiseSimulation(numParticles,delta, maxParticleMultiplier);
       maxParticles = numParticles * maxParticleMultiplier;
       const bool checkParticleSection = true;
-      const bool printParticles = true;
+      const bool printParticles = false;
       int timeStep = 0;
       double simulationTime = 0;
       double verificationTime = 0;
@@ -99,7 +99,7 @@ namespace osc
     {
       std::string baseExperimentPath = "../experiments/";
       std::string experimentPath = "";
-      std::string defaultExperiment = "100p5c.json";
+      std::string defaultExperiment = "1milp50c.json";
       for (int i = 1; i < ac; i++)
       {
         const std::string arg = av[i];
