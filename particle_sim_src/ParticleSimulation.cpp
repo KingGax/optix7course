@@ -30,7 +30,7 @@ namespace osc {
     __align__( OPTIX_SBT_RECORD_ALIGNMENT ) char header[OPTIX_SBT_RECORD_HEADER_SIZE];
     // just a dummy value - later examples will use more interesting
     // data here
-    void *data;
+    TriangleMeshSBTData data;
   };
 
   /*! SBT record for a miss program */
@@ -455,7 +455,11 @@ namespace osc {
     for (int i=0;i<raygenPGs.size();i++) {
       RaygenRecord rec;
       OPTIX_CHECK(optixSbtRecordPackHeader(raygenPGs[i],&rec));
-      rec.data = nullptr; /* for now ... */
+      rec.data.vertex = (vec3f*)vertexBuffer[0].d_pointer(); //change if more models
+      rec.data.index  = (vec3i*)indexBuffer[0].d_pointer();
+      rec.data.posNegNormalSections  = (vec2i*)posNegNormalSectionsBuffer[0].d_pointer();
+      rec.data.normals  = (vec3f*)normalBufffer[0].d_pointer();
+      rec.data.sectionData  = (SectionData*)sectionDataBuffer[0].d_pointer();
       raygenRecords.push_back(rec);
     }
     raygenRecordsBuffer.alloc_and_upload(raygenRecords);
@@ -494,6 +498,7 @@ namespace osc {
       rec.data.vertex = (vec3f*)vertexBuffer[meshID].d_pointer();
       rec.data.index  = (vec3i*)indexBuffer[meshID].d_pointer();
       rec.data.posNegNormalSections  = (vec2i*)posNegNormalSectionsBuffer[meshID].d_pointer();
+      rec.data.sectionData  = (SectionData*)sectionDataBuffer[meshID].d_pointer();
       hitgroupRecords.push_back(rec);
     }
     hitgroupRecordsBuffer.alloc_and_upload(hitgroupRecords);
@@ -503,6 +508,11 @@ namespace osc {
   }
 
 
+  int ParticleSimulation::getNumActiveParticles(){
+    int activeParticles[1];
+    cudaMemcpy(activeParticles,launchParams.activeParticleCount,sizeof(int),cudaMemcpyDeviceToHost);
+    return activeParticles[0];
+  }
 
   /*! render one frame */
   void ParticleSimulation::runTimestep(int timestep)
@@ -516,7 +526,7 @@ namespace osc {
       activeParticles[0] = launchParams.maxParticles;
       cudaMemcpy(launchParams.activeParticleCount,activeParticles,sizeof(int),cudaMemcpyHostToDevice);
     }
-    cudaMemcpy(launchParams.bounced,&init,sizeof(int),cudaMemcpyDefault);
+    //cudaMemcpy(launchParams.bounced,&init,sizeof(int),cudaMemcpyDefault);
     launchParams.timestep = timestep;
     
     launchParamsBuffer.upload(&launchParams,1);
@@ -535,12 +545,12 @@ namespace osc {
                             ));
     // sync - wait for particles to update position
     CUDA_SYNC_CHECK();
-    bouncedBuffer.download(bounced,1);
+    /*bouncedBuffer.download(bounced,1);
     if(timestepFinished()){
       launchParams.firstTrace = true;
     } else {
       launchParams.firstTrace = false;
-    }
+    }*/
     //std::cout << "sync check done" << "\n";
   }
 

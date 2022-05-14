@@ -49,6 +49,8 @@ namespace osc {
     float getParticleEscapePercentage(const int numParticles);
 
     bool timestepFinished();
+
+    int getNumActiveParticles();
   protected:
     // ------------------------------------------------------------------
     // internal helper functions

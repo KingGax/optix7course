@@ -75,7 +75,7 @@ namespace osc
           }
         }
       }
-      std::cout << "done simulating " << numParticles << " particles with " << loadedModel->meshes[0]->index.size() << " tris "
+      std::cout << "done simulating " << numParticles << " start particles " << simulation.getNumActiveParticles() << " end particles with " << loadedModel->meshes[0]->index.size() << " tris "
                 << "\n";
       std::cout << "simulation time " << simulationTime << " verification time " << verificationTime << "\n";
     }
@@ -100,6 +100,7 @@ namespace osc
       std::string baseExperimentPath = "../experiments/";
       std::string experimentPath = "";
       std::string defaultExperiment = "1milp50c.json";
+      //std::string defaultExperiment = "128p5c.json";
       for (int i = 1; i < ac; i++)
       {
         const std::string arg = av[i];
@@ -133,7 +134,7 @@ namespace osc
       }  
       
       Model *model = loadOBJ(cubesPerAxis);
-
+      std::cout << model->meshes[0]->index.size() << " triangles loaded\n";
       std::string experimentName = std::to_string(numParticles) + "particles-" + std::to_string(cubesPerAxis) + "cubes-" + std::to_string(timesteps) + "timestep-" + std::to_string(delta) + "delta";
 
       Experiment *experiment = new Experiment(model, numParticles,timesteps,delta, experimentName);
