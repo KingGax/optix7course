@@ -255,7 +255,7 @@ namespace osc
                  SURFACE_RAY_TYPE,                  // SBT offset
                  RAY_TYPE_COUNT,                    // SBT stride
                  SURFACE_RAY_TYPE,                  // missSBTIndex
-                 u0, u1, tmaxPayload, firstTraceFlag, lastPrimPayload);
+                 u0, u1);
       const TriangleMeshSBTData &sbtData = *(const TriangleMeshSBTData *)optixGetSbtDataPointer();
       const float delta = optixLaunchParams.delta;
       p->pos = p->pos + p->vel * delta;

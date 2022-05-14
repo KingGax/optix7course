@@ -299,12 +299,12 @@ namespace osc {
     pipelineCompileOptions = {};
     pipelineCompileOptions.traversableGraphFlags = OPTIX_TRAVERSABLE_GRAPH_FLAG_ALLOW_SINGLE_GAS;
     pipelineCompileOptions.usesMotionBlur     = false;
-    pipelineCompileOptions.numPayloadValues   = 5;
+    pipelineCompileOptions.numPayloadValues   = 2;
     pipelineCompileOptions.numAttributeValues = 2;
     pipelineCompileOptions.exceptionFlags     = OPTIX_EXCEPTION_FLAG_NONE;
     pipelineCompileOptions.pipelineLaunchParamsVariableName = "optixLaunchParams";
       
-    pipelineLinkOptions.maxTraceDepth          = 2;
+    pipelineLinkOptions.maxTraceDepth          = 0;
       
     const std::string ptxCode = embedded_ptx_code;
       
@@ -511,7 +511,7 @@ namespace osc {
   int ParticleSimulation::getNumActiveParticles(){
     int activeParticles[1];
     cudaMemcpy(activeParticles,launchParams.activeParticleCount,sizeof(int),cudaMemcpyDeviceToHost);
-    return activeParticles[0];
+    return min(activeParticles[0],launchParams.maxParticles);
   }
 
   /*! render one frame */
