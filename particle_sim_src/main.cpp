@@ -61,12 +61,13 @@ namespace osc
         if (simulation.timestepFinished())
         {
           timeStep++;
-          if (checkParticleSection)
+          if (checkParticleSection && (timeStep%20) == 0)
           {
             auto preVerif = std::chrono::system_clock::now();
-            float accuracy = simulation.getParticleSectionAccuracy(numParticles);
-            float fracEscaped = simulation.getParticleEscapePercentage(numParticles);
-            std::cout << "section tracking accuracy timestep " << timeStep - 1 << " " << accuracy << " escaped " << fracEscaped << std::endl;
+            int currentParticleCount = simulation.getNumActiveParticles();
+            float accuracy = simulation.getParticleSectionAccuracy(currentParticleCount);
+            float fracEscaped = simulation.getParticleEscapePercentage(currentParticleCount);
+            std::cout << "section tracking accuracy timestep " << timeStep - 1 << " --accuracy " << accuracy << " ---- num escaped " << fracEscaped << " particle count " << currentParticleCount << std::endl;
             auto postVerif = std::chrono::system_clock::now();
             verificationTime += std::chrono::duration<double>(postVerif - preVerif).count();
           }
@@ -97,7 +98,7 @@ namespace osc
   {
     try
     {
-      std::string baseExperimentPath = "../experiments/";
+      std::string baseExperimentPath = "/nfs/home/zs18838/prime-owl/experiments/";
       std::string experimentPath = "";
       std::string defaultExperiment = "1milp50c.json";
       //std::string defaultExperiment = "128p5c.json";

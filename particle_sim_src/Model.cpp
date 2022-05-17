@@ -418,7 +418,7 @@ namespace osc {
     }
     std::cout << "set up section accelerations" << std::endl;
     for(int i = 0; i < tetras.size(); i++){
-      SectionData d = {vec3f(0,-4,0),288.6f};
+      SectionData d = {vec3f(0,-1,0),288.6f};
       cubeMesh->sectionData.push_back(d);
     }
     model->meshes.push_back(cubeMesh);

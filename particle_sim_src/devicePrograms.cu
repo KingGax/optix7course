@@ -88,7 +88,7 @@ namespace osc
     p->vel = p->vel + a1 * dt;
 
     int launchIndex = optixGetLaunchIndex().x;
-    bool newParticle = (((launchIndex + randomSeed) & 63) == 0);
+    bool newParticle = (((launchIndex + randomSeed) & 127) == 0);
     if (newParticle)
     {
       int writeAddress = atomicAdd(optixLaunchParams.activeParticleCount, 1);
@@ -117,7 +117,7 @@ namespace osc
 
   extern "C" __global__ void __closesthit__radiance()
   {
-    
+
     const TriangleMeshSBTData &sbtData = *(const TriangleMeshSBTData *)optixGetSbtDataPointer();
     int lastPrim = optixGetPrimitiveIndex();
     const vec3i index = sbtData.index[lastPrim];
@@ -126,7 +126,7 @@ namespace osc
     const vec3f &C = sbtData.vertex[index.z];
     const vec3f N = normalize(cross(B - A, C - A));
     const vec2i neighs = sbtData.posNegNormalSections[lastPrim];
-    //const bool boundary = (neighs[0] == -1 || neighs[1] == -1);
+    // const bool boundary = (neighs[0] == -1 || neighs[1] == -1);
     Particle &p = *(Particle *)getPRD<Particle>();
     float dotProd = dot(p.vel, N);
     p.section = (dotProd < 0) * neighs[1] + !(dotProd < 0) * neighs[0];
@@ -135,16 +135,16 @@ namespace osc
     {
       printf("eww zero dot product");
     }
-    //p.pos = p.pos + p.vel * delta;
-    //vec3f accel = vec3f(0, 0, 0);
-    //float temp = 288.6;
-    //if (p.section != -1)
+    // p.pos = p.pos + p.vel * delta;
+    // vec3f accel = vec3f(0, 0, 0);
+    // float temp = 288.6;
+    // if (p.section != -1)
     //{
-      //printf("hit %d %d\n", p.section, optixGetLaunchIndex().x);
+    // printf("hit %d %d\n", p.section, optixGetLaunchIndex().x);
     //  accel = sbtData.sectionData[p.section].accel;
     //  temp = 288.6;
     //}
-    //calculatePhysics(&p, temp, accel, delta, optixLaunchParams.timestep);
+    // calculatePhysics(&p, temp, accel, delta, optixLaunchParams.timestep);
   }
 
   extern "C" __global__ void __anyhit__radiance()
@@ -193,8 +193,6 @@ namespace osc
   // need to have _some_ dummy function to set up a valid SBT
   // ------------------------------------------------------------------------------
 
-  
-
   extern "C" __global__ void __miss__radiance()
   {
     // int lastPrim = optixGetPayload_4();
@@ -228,47 +226,50 @@ namespace osc
     // won't matter, since this value will be overwritten by either
     // the miss or hit program, anyway
     Particle *p = &optixLaunchParams.particles[ix];
-    // the values we store the PRD pointer in:
-    uint32_t u0, u1;
-    packPointer(p, u0, u1);
-
-    // generate ray direction
-    vec3f pos = p->pos + p->vel * optixLaunchParams.delta;
-    vec3f rayDir = -p->vel;
-
-    uint32_t tmaxPayload = __float_as_uint(0);
-    uint32_t firstTraceFlag = (int)optixLaunchParams.firstTrace;
-    uint32_t lastPrimPayload = INT_MAX;
-
-    float tmax = optixLaunchParams.delta;
-    float eps = 0;
-    if (tmax > 0)
+    if (p->section != -1)
     {
-      optixTrace(optixLaunchParams.traversable,
-                 pos,
-                 rayDir,
-                 eps,  // tmin
-                 tmax, // tmax
-                 0.0f, // rayTime
-                 OptixVisibilityMask(255),
-                 OPTIX_RAY_FLAG_DISABLE_ANYHIT, // OPTIX_RAY_FLAG_NONE,
-                 SURFACE_RAY_TYPE,                  // SBT offset
-                 RAY_TYPE_COUNT,                    // SBT stride
-                 SURFACE_RAY_TYPE,                  // missSBTIndex
-                 u0, u1);
-      const TriangleMeshSBTData &sbtData = *(const TriangleMeshSBTData *)optixGetSbtDataPointer();
-      const float delta = optixLaunchParams.delta;
-      p->pos = p->pos + p->vel * delta;
-      //p.simPercent = 1;
-      vec3f accel = vec3f(0, 0, 0);
-      float temp = 288.6;
-      if (p->section != -1)
+      // the values we store the PRD pointer in:
+      uint32_t u0, u1;
+      packPointer(p, u0, u1);
+
+      // generate ray direction
+      vec3f pos = p->pos + p->vel * optixLaunchParams.delta;
+      vec3f rayDir = -p->vel;
+
+      uint32_t tmaxPayload = __float_as_uint(0);
+      uint32_t firstTraceFlag = (int)optixLaunchParams.firstTrace;
+      uint32_t lastPrimPayload = INT_MAX;
+
+      float tmax = optixLaunchParams.delta;
+      float eps = 0;
+      if (tmax > 0)
       {
-      //printf("no hit %d %d\n", p.section, optixGetLaunchIndex().x);
-        accel = sbtData.sectionData[p->section].accel;
-        temp = 288.6;
+        optixTrace(optixLaunchParams.traversable,
+                   pos,
+                   rayDir,
+                   eps,  // tmin
+                   tmax, // tmax
+                   0.0f, // rayTime
+                   OptixVisibilityMask(255),
+                   OPTIX_RAY_FLAG_DISABLE_ANYHIT, // OPTIX_RAY_FLAG_NONE,
+                   SURFACE_RAY_TYPE,              // SBT offset
+                   RAY_TYPE_COUNT,                // SBT stride
+                   SURFACE_RAY_TYPE,              // missSBTIndex
+                   u0, u1);
+        const TriangleMeshSBTData &sbtData = *(const TriangleMeshSBTData *)optixGetSbtDataPointer();
+        const float delta = optixLaunchParams.delta;
+        p->pos = p->pos + p->vel * delta;
+        // p.simPercent = 1;
+        vec3f accel = vec3f(0, 0, 0);
+        float temp = 288.6;
+        if (p->section != -1)
+        {
+          // printf("no hit %d %d\n", p.section, optixGetLaunchIndex().x);
+          accel = sbtData.sectionData[p->section].accel;
+          temp = sbtData.sectionData[p->section].temp;
+        }
+        calculatePhysics(p, temp, accel, delta, optixLaunchParams.timestep);
       }
-      calculatePhysics(p, temp, accel, delta, optixLaunchParams.timestep);
     }
   }
 

@@ -594,7 +594,7 @@ vec4f bary_tet(const vec3f a, const vec3f b, const vec3f c, const vec3f d, const
     for(int j = 0; j < numParticles; j++){
       Particle p = particles[j];
       vec3f pos = p.pos;
-      if(abs(p.pos[0]) > 2 || abs(p.pos[1]) > 2 || abs(p.pos[2]) > 2){
+      if(abs(p.pos[0]-1) > 1 || abs(p.pos[1]-1) > 1 || abs(p.pos[2]-1) > 1){
         numEscaped++;
       }
     }
@@ -609,10 +609,11 @@ vec4f bary_tet(const vec3f a, const vec3f b, const vec3f c, const vec3f d, const
   }
 
   float ParticleSimulation::getParticleSectionAccuracy(const int numParticles)
-  { 
+  {     
     const bool calculateCorrectSection = false;
     int realSection[4] = {-5,-5,-5,-5};
     particleBuffer.download(particles,numParticles);
+    std::cout << "particle 0 at " << particles[0].pos << "\n";
     int numCorrect = 0;
     int numCandidateSections = 0;
     for(int j = 0; j < numParticles; j++){
