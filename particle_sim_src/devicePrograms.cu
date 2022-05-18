@@ -57,10 +57,9 @@ namespace osc
     return reinterpret_cast<T *>(unpackPointer(u0, u1));
   }
 
-  __device__ void calculatePhysics(Particle *p, const float temp, const vec3f sectionAcceleration, const float dt, const int randomSeed)
+  __device__ void calculatePhysics(Particle *p, const float gas_temp, const vec3f sectionAcceleration, const float dt, const int randomSeed)
   {
     vec3f gas_vel = sectionAcceleration;
-    // printf("%f\n",temp);
 
     // ray.direction += (accel / particleData.mass) * dt;
     vec3f v1 = p->vel;
@@ -71,11 +70,11 @@ namespace osc
     const float mass = 0.1;
 
     const float gas_density = 0.59; // DUMMY VAL
-
-    const float fuel_density = 724. * (1. - 1.8 * 0.000645 * (temp - 288.6) - 0.090 * pow(temp - 288.6, 2.) / pow(548. - 288.6, 2.));
+    const float particle_temp = 288.6;
+    const float fuel_density = 724. * (1. - 1.8 * 0.000645 * (particle_temp - 288.6) - 0.090 * pow(particle_temp - 288.6, 2.) / pow(548. - 288.6, 2.));
     const float three_over_fourPI = 3 / (4 * M_PI);
     const float diameter = 2 * cbrtf(three_over_fourPI * (mass / fuel_density));
-    const float kinematic_viscosity = 1.48e-5 * pow(temp, 1.5) / (temp + 110.4); // DUMMY_VAL
+    const float kinematic_viscosity = 1.48e-5 * pow(gas_temp, 1.5) / (gas_temp + 110.4); // DUMMY_VAL
     const float reynolds = gas_density * relative_drop_vel_mag * diameter / kinematic_viscosity;
 
     const float droplet_frontal_area = M_PI * (diameter / 2.) * (diameter / 2.);

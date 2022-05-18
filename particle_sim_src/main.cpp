@@ -30,7 +30,7 @@ namespace osc
 
   struct Experiment
   {
-    Experiment(const Model *model, int _numParticles,int timesteps,float _delta,std::string name)
+    Experiment(const Model *model, int _numParticles, int timesteps, float _delta, std::string name)
         : simulation(model)
     {
       loadedModel = model;
@@ -42,15 +42,15 @@ namespace osc
 
     virtual void run()
     {
-      
-      simulation.initialiseSimulation(numParticles,delta, maxParticleMultiplier);
+
+      simulation.initialiseSimulation(numParticles, delta, maxParticleMultiplier);
       maxParticles = numParticles * maxParticleMultiplier;
-      const bool checkParticleSection = true;
+      const bool checkParticleSection = false;
       const bool printParticles = false;
       int timeStep = 0;
       double simulationTime = 0;
       double verificationTime = 0;
-      
+
       while (timeStep < numTimesteps)
       {
         // std::cout << "run timestep " << timeStep << "\n";
@@ -61,7 +61,7 @@ namespace osc
         if (simulation.timestepFinished())
         {
           timeStep++;
-          if (checkParticleSection && (timeStep%20) == 0)
+          if (checkParticleSection && (timeStep % 1) == 0)
           {
             auto preVerif = std::chrono::system_clock::now();
             int currentParticleCount = simulation.getNumActiveParticles();
@@ -71,14 +71,16 @@ namespace osc
             auto postVerif = std::chrono::system_clock::now();
             verificationTime += std::chrono::duration<double>(postVerif - preVerif).count();
           }
-          if(printParticles){
+          if (printParticles)
+          {
             simulation.writeParticles(maxParticles, timeStep, experimentName);
           }
         }
       }
+
       std::cout << "done simulating " << numParticles << " start particles " << simulation.getNumActiveParticles() << " end particles with " << loadedModel->meshes[0]->index.size() << " tris "
                 << "\n";
-      std::cout << "simulation time " << simulationTime << " verification time " << verificationTime << "\n";
+      std::cout << experimentName << " " << simulationTime << "," << verificationTime << "\n";
     }
 
     const Model *loadedModel;
@@ -100,8 +102,12 @@ namespace osc
     {
       std::string baseExperimentPath = "/nfs/home/zs18838/prime-owl/experiments/";
       std::string experimentPath = "";
-      std::string defaultExperiment = "1milp50c.json";
-      //std::string defaultExperiment = "128p5c.json";
+      std::string defaultExperiment = "256p20-0.02.json";
+      // std::string defaultExperiment = "128p5c.json";
+      float overrideDT = 0;
+      int overrideParticles = 0;
+      int overrideCubeRecDepth = 0;
+      int overrideTimesteps = 0;
       for (int i = 1; i < ac; i++)
       {
         const std::string arg = av[i];
@@ -109,36 +115,56 @@ namespace osc
         {
           experimentPath = baseExperimentPath + av[++i];
         }
+        if (arg == "-steps")
+        {
+          overrideTimesteps = std::stoi(av[++i]);
+        }
+        if (arg == "-p")
+        {
+          overrideParticles = std::stoi(av[++i]);
+        }
+        if (arg == "-cubes")
+        {
+          overrideCubeRecDepth = std::stoi(av[++i]);
+        }
+        if (arg == "-dt")
+        {
+          overrideDT = std::stof(av[++i]);
+        }
       }
       std::ifstream inFile;
-      if(experimentPath == ""){
-        std::cout << "No experiment specified with -exp flag, using default" << "\n";
+      if (experimentPath == "")
+      {
+        std::cout << "No experiment specified with -exp flag, using default"
+                  << "\n";
         experimentPath = baseExperimentPath + defaultExperiment;
       }
       std::cout << "Loading experiment at " + experimentPath << "\n";
       inFile.open(experimentPath); // open the input file
-      
+
       std::stringstream strStream;
       strStream << inFile.rdbuf();       // read the file
       std::string str = strStream.str(); // str holds the content of the file
 
       RSJresource my_json(str);
-      int numParticles = my_json["NumParticles"].as<int>(-1);
-      int cubesPerAxis = my_json["NumCubes"].as<int>(-1);
-      int timesteps = my_json["Timesteps"].as<int>(10);
-      float delta = (float)my_json["Delta"].as<double>(1);
-      std::cout << "Running " << numParticles << " particles" << std::endl; 
-      std::cout << "Creating cube with " << cubesPerAxis << " cubes per axis" << std::endl;  
-      if(numParticles <= 0 || cubesPerAxis <= 0) {
+      int numParticles = (overrideParticles != 0) ? overrideParticles : my_json["NumParticles"].as<int>(-1);
+      int cubesPerAxis = (overrideCubeRecDepth != 0) ? overrideCubeRecDepth : my_json["NumCubes"].as<int>(-1);
+      int timesteps = (overrideTimesteps != 0) ? overrideTimesteps : my_json["Timesteps"].as<int>(10);
+      float delta = (overrideDT != 0) ? overrideDT : (float)my_json["Delta"].as<double>(1);
+
+      std::cout << "Running " << numParticles << " particles" << std::endl;
+      std::cout << "Creating cube with " << cubesPerAxis << " cubes per axis" << std::endl;
+      if (numParticles <= 0 || cubesPerAxis <= 0)
+      {
         std::cout << "invalid num of particles or cubes per axis in experiment\n";
         throw;
-      }  
-      
+      }
+
       Model *model = loadOBJ(cubesPerAxis);
       std::cout << model->meshes[0]->index.size() << " triangles loaded\n";
       std::string experimentName = std::to_string(numParticles) + "particles-" + std::to_string(cubesPerAxis) + "cubes-" + std::to_string(timesteps) + "timestep-" + std::to_string(delta) + "delta";
 
-      Experiment *experiment = new Experiment(model, numParticles,timesteps,delta, experimentName);
+      Experiment *experiment = new Experiment(model, numParticles, timesteps, delta, experimentName);
       experiment->run();
     }
     catch (std::runtime_error &e)

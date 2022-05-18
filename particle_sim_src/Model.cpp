@@ -204,7 +204,7 @@ namespace osc {
     mesh->boundaries.push_back(boundary);
   }
 
-  void addTetraTriangles(vec3f vertices[], Model* model, std::vector<Tetra> tetras){
+  void addTetraTriangles(std::vector<vec3f> vertices, Model* model, std::vector<Tetra> tetras){
     bool constructed = false;
     int numTetras = tetras.size();
     std::vector<int> constructionIndexQueue;
@@ -355,7 +355,8 @@ namespace osc {
     TriangleMesh *cubeMesh = new TriangleMesh;
     
     std::cout << "init vertices array size " << verticesPerAxis*verticesPerAxis*verticesPerAxis << std::endl;
-    vec3f vertices[verticesPerAxis*verticesPerAxis*verticesPerAxis];
+    std::vector<vec3f> vertices;
+    vertices.resize(verticesPerAxis*verticesPerAxis*verticesPerAxis);
     const int NUM_VERTICES = 8;
     
     for (int y = 0; y < verticesPerAxis; y++)
