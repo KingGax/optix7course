@@ -62,7 +62,7 @@ namespace osc
     vec3f gas_vel = sectionAcceleration;
 
     // ray.direction += (accel / particleData.mass) * dt;
-    vec3f v1 = p->vel;
+    const vec3f v1 = p->vel;
     const vec3f relative_drop_vel = gas_vel - v1;                  // DUMMY_VAL Relative velocity between droplet and the fluid
     const float relative_drop_vel_mag = length(relative_drop_vel); // DUMMY_VAL Relative acceleration between the gas and liquid phase.
 
@@ -84,7 +84,8 @@ namespace osc
 
     const vec3f drag_force = (drag_coefficient * reynolds * 0.5f * gas_density * relative_drop_vel_mag * droplet_frontal_area) * relative_drop_vel;
     const vec3f a1 = ((drag_force) / mass) * dt;
-    p->vel = p->vel + a1 * dt;
+    const vec3f newVel = v1 + a1 * dt;
+    p->vel = newVel;
 
     int launchIndex = optixGetLaunchIndex().x;
     bool newParticle = (((launchIndex + randomSeed) & 127) == 0);
@@ -95,8 +96,9 @@ namespace osc
       if (writeAddress < optixLaunchParams.maxParticles)
       {
         // printf("%d %d\n",writeAddress,optixLaunchParams.maxParticles);
-        float particleVel = length(p->vel);
-        vec3f dir = particleVel * normalize(cross(p->vel, vec3f(1, 0, 0)));
+        //float particleVel = length(newVel);
+        const vec3f multiplier = vec3f(0.8,1,0.8);
+        const vec3f dir = dot(newVel,multiplier);
         optixLaunchParams.particles[writeAddress].section = p->section;
         optixLaunchParams.particles[writeAddress].pos = p->pos;
         optixLaunchParams.particles[writeAddress].vel = dir;
@@ -129,59 +131,15 @@ namespace osc
     Particle &p = *(Particle *)getPRD<Particle>();
     float dotProd = dot(p.vel, N);
     p.section = (dotProd < 0) * neighs[1] + !(dotProd < 0) * neighs[0];
-    float delta = optixLaunchParams.delta;
-    if (dotProd == 0)
+    /*if (dotProd == 0)
     {
       printf("eww zero dot product");
-    }
-    // p.pos = p.pos + p.vel * delta;
-    // vec3f accel = vec3f(0, 0, 0);
-    // float temp = 288.6;
-    // if (p.section != -1)
-    //{
-    // printf("hit %d %d\n", p.section, optixGetLaunchIndex().x);
-    //  accel = sbtData.sectionData[p.section].accel;
-    //  temp = 288.6;
-    //}
-    // calculatePhysics(&p, temp, accel, delta, optixLaunchParams.timestep);
+    }*/
   }
 
   extern "C" __global__ void __anyhit__radiance()
   {
     printf("I SHOULD NOT APPEAR\n");
-    /*float currentTmax = __uint_as_float(optixGetPayload_2());
-    float t = optixGetRayTmax();
-    if (t > currentTmax)
-    {
-
-      // printf("getting sbt data\n");
-      optixSetPayload_2(__float_as_uint(t));
-
-      const int primID = optixGetPrimitiveIndex();
-      optixSetPayload_4(primID);
-      const TriangleMeshSBTData &sbtData = *(const TriangleMeshSBTData *)optixGetSbtDataPointer();
-      const vec2i neighs = sbtData.posNegNormalSections[primID];
-      const bool boundary = (neighs[0] == -1 || neighs[1] == -1);
-      int firstTraceMultiplier = (optixGetPayload_3() + 1) & 1; // if first trace, multiplier is 0
-      Particle &p = *(Particle *)getPRD<Particle>();
-      if (boundary)
-      {
-        const vec3i index = sbtData.index[primID];
-        const vec3f &A = sbtData.vertex[index.x];
-        const vec3f &B = sbtData.vertex[index.y];
-        const vec3f &C = sbtData.vertex[index.z];
-        const vec3f N = normalize(cross(B - A, C - A));
-        p.simPercent = firstTraceMultiplier * p.simPercent + t;
-        p.pos += p.vel * t * optixLaunchParams.delta;
-        vec3f newDir = p.vel - 2.0f * dot(p.vel, N) * N;
-        p.vel = newDir;
-        // printf("HIT BOUNDARY\n");
-        optixLaunchParams.bounced[0] = 1;
-        p.section = (neighs[0] != -1) * neighs[0] + (neighs[1] != -1) * neighs[1];
-        optixTerminateRay();
-      }
-    }
-    optixIgnoreIntersection();*/
   }
 
   //------------------------------------------------------------------------------
@@ -232,43 +190,39 @@ namespace osc
       packPointer(p, u0, u1);
 
       // generate ray direction
-      vec3f pos = p->pos + p->vel * optixLaunchParams.delta;
-      vec3f rayDir = -p->vel;
+      const vec3f startPos = p->pos;
+      const vec3f startVel = p->vel;
+      const vec3f rayPos = startPos + startVel * optixLaunchParams.delta;
+      const vec3f rayDir = -startVel;
 
-      uint32_t tmaxPayload = __float_as_uint(0);
-      uint32_t firstTraceFlag = (int)optixLaunchParams.firstTrace;
-      uint32_t lastPrimPayload = INT_MAX;
-
-      float tmax = optixLaunchParams.delta;
-      float eps = 0;
-      if (tmax > 0)
+      const float tmax = optixLaunchParams.delta;
+      const float eps = 0;
+      optixTrace(optixLaunchParams.traversable,
+                 rayPos,
+                 rayDir,
+                 eps,  // tmin
+                 tmax, // tmax
+                 0.0f, // rayTime
+                 OptixVisibilityMask(255),
+                 OPTIX_RAY_FLAG_DISABLE_ANYHIT, // OPTIX_RAY_FLAG_NONE,
+                 SURFACE_RAY_TYPE,              // SBT offset
+                 RAY_TYPE_COUNT,                // SBT stride
+                 SURFACE_RAY_TYPE,              // missSBTIndex
+                 u0, u1);
+      const TriangleMeshSBTData &sbtData = *(const TriangleMeshSBTData *)optixGetSbtDataPointer();
+      const float delta = optixLaunchParams.delta;
+      p->pos = startPos + startVel * delta;
+      // p.simPercent = 1;
+      vec3f accel = vec3f(0, 0, 0);
+      float temp = 288.6;
+      const int newSection = p->section;
+      if (newSection != -1)
       {
-        optixTrace(optixLaunchParams.traversable,
-                   pos,
-                   rayDir,
-                   eps,  // tmin
-                   tmax, // tmax
-                   0.0f, // rayTime
-                   OptixVisibilityMask(255),
-                   OPTIX_RAY_FLAG_DISABLE_ANYHIT, // OPTIX_RAY_FLAG_NONE,
-                   SURFACE_RAY_TYPE,              // SBT offset
-                   RAY_TYPE_COUNT,                // SBT stride
-                   SURFACE_RAY_TYPE,              // missSBTIndex
-                   u0, u1);
-        const TriangleMeshSBTData &sbtData = *(const TriangleMeshSBTData *)optixGetSbtDataPointer();
-        const float delta = optixLaunchParams.delta;
-        p->pos = p->pos + p->vel * delta;
-        // p.simPercent = 1;
-        vec3f accel = vec3f(0, 0, 0);
-        float temp = 288.6;
-        if (p->section != -1)
-        {
-          // printf("no hit %d %d\n", p.section, optixGetLaunchIndex().x);
-          accel = sbtData.sectionData[p->section].accel;
-          temp = sbtData.sectionData[p->section].temp;
-        }
-        calculatePhysics(p, temp, accel, delta, optixLaunchParams.timestep);
+        // printf("no hit %d %d\n", p.section, optixGetLaunchIndex().x);
+        accel = sbtData.sectionData[newSection].accel;
+        temp = sbtData.sectionData[newSection].temp;
       }
+      calculatePhysics(p, temp, accel, delta, optixLaunchParams.timestep);
     }
   }
 
