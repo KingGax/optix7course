@@ -77,10 +77,11 @@ namespace osc
           }
         }
       }
+      float fracEscaped = simulation.getParticleEscapePercentage(simulation.getNumActiveParticles());
 
       std::cout << "done simulating " << numParticles << " start particles " << simulation.getNumActiveParticles() << " end particles with " << loadedModel->meshes[0]->index.size() << " tris "
                 << "\n";
-      std::cout << experimentName << " " << simulationTime << "," << verificationTime << "\n";
+      std::cout << experimentName << " " << simulationTime << ",verif " << verificationTime << ",escaped " << fracEscaped << "\n";
     }
 
     const Model *loadedModel;
