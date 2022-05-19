@@ -129,7 +129,6 @@ namespace osc
     const vec2i neighs = sbtData.posNegNormalSections[lastPrim];
     // const bool boundary = (neighs[0] == -1 || neighs[1] == -1);
     Particle &p = *(Particle *)getPRD<Particle>();
-    //const vec3f rayDir = vec3f(1,0,0);
     //float dotProd = dot(p.vel, N);
     bool isBackFaceHit = optixIsTriangleBackFaceHit();
     p.section = (isBackFaceHit) * neighs[1] + !(isBackFaceHit) * neighs[0];
@@ -171,8 +170,6 @@ namespace osc
         accel = sbtData.sectionData[p->section].accel;
         temp = 288.6;
       }*/
-      Particle &p = *(Particle *)getPRD<Particle>();
-      p.section = -1;
   }
 
   //------------------------------------------------------------------------------
@@ -197,9 +194,9 @@ namespace osc
       const vec3f startPos = p->pos;
       const vec3f startVel = p->vel;
       const vec3f rayPos = startPos + startVel * optixLaunchParams.delta;
-      const vec3f rayDir = vec3f(1,0,0);//-startVel;
-      //const float rayDist = //optixLaunchParams.delta * length(rayDir);
-      const float tmax = optixLaunchParams.maxEdgeLength; //(rayDist > optixLaunchParams.maxEdgeLength) ? (optixLaunchParams.maxEdgeLength / length(rayDir)) : optixLaunchParams.delta;
+      const vec3f rayDir = -startVel;
+      //const float rayDist = optixLaunchParams.delta * length(rayDir);
+      const float tmax = optixLaunchParams.delta;
       /*if(ix % 1000000 == 0){
         printf("%f\n", tmax);
       }*/
