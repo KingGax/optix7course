@@ -58,6 +58,7 @@ namespace osc {
     float delta;
     int * activeParticleCount;
     int maxParticles;
+    float maxEdgeLength;
 
     OptixTraversableHandle traversable;
   };

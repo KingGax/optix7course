@@ -121,16 +121,18 @@ namespace osc
 
     const TriangleMeshSBTData &sbtData = *(const TriangleMeshSBTData *)optixGetSbtDataPointer();
     int lastPrim = optixGetPrimitiveIndex();
-    const vec3i index = sbtData.index[lastPrim];
-    const vec3f &A = sbtData.vertex[index.x];
-    const vec3f &B = sbtData.vertex[index.y];
-    const vec3f &C = sbtData.vertex[index.z];
-    const vec3f N = normalize(cross(B - A, C - A));
+    //const vec3i index = sbtData.index[lastPrim];
+    //const vec3f &A = sbtData.vertex[index.x];
+    //const vec3f &B = sbtData.vertex[index.y];
+    //const vec3f &C = sbtData.vertex[index.z];
+    //const vec3f N = normalize(cross(B - A, C - A));
     const vec2i neighs = sbtData.posNegNormalSections[lastPrim];
     // const bool boundary = (neighs[0] == -1 || neighs[1] == -1);
     Particle &p = *(Particle *)getPRD<Particle>();
-    float dotProd = dot(p.vel, N);
-    p.section = (dotProd < 0) * neighs[1] + !(dotProd < 0) * neighs[0];
+    //const vec3f rayDir = vec3f(1,0,0);
+    //float dotProd = dot(p.vel, N);
+    bool isBackFaceHit = optixIsTriangleBackFaceHit();
+    p.section = (isBackFaceHit) * neighs[1] + !(isBackFaceHit) * neighs[0];
     /*if (dotProd == 0)
     {
       printf("eww zero dot product");
@@ -169,6 +171,8 @@ namespace osc
         accel = sbtData.sectionData[p->section].accel;
         temp = 288.6;
       }*/
+      Particle &p = *(Particle *)getPRD<Particle>();
+      p.section = -1;
   }
 
   //------------------------------------------------------------------------------
@@ -193,9 +197,12 @@ namespace osc
       const vec3f startPos = p->pos;
       const vec3f startVel = p->vel;
       const vec3f rayPos = startPos + startVel * optixLaunchParams.delta;
-      const vec3f rayDir = -startVel;
-
-      const float tmax = optixLaunchParams.delta;
+      const vec3f rayDir = vec3f(1,0,0);//-startVel;
+      //const float rayDist = //optixLaunchParams.delta * length(rayDir);
+      const float tmax = optixLaunchParams.maxEdgeLength; //(rayDist > optixLaunchParams.maxEdgeLength) ? (optixLaunchParams.maxEdgeLength / length(rayDir)) : optixLaunchParams.delta;
+      /*if(ix % 1000000 == 0){
+        printf("%f\n", tmax);
+      }*/
       const float eps = 0;
       optixTrace(optixLaunchParams.traversable,
                  rayPos,

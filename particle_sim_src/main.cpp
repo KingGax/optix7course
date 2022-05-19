@@ -115,21 +115,24 @@ namespace osc
         {
           experimentPath = baseExperimentPath + av[++i];
         }
-        if (arg == "-steps")
+        else if (arg == "-steps")
         {
           overrideTimesteps = std::stoi(av[++i]);
         }
-        if (arg == "-p")
+        else if (arg == "-p")
         {
           overrideParticles = std::stoi(av[++i]);
         }
-        if (arg == "-cubes")
+        else if (arg == "-cubes")
         {
           overrideCubeRecDepth = std::stoi(av[++i]);
         }
-        if (arg == "-dt")
+        else if (arg == "-dt")
         {
           overrideDT = std::stof(av[++i]);
+        } else{
+          std::cout << "unkown argument " + arg + "\n";
+          throw;
         }
       }
       std::ifstream inFile;

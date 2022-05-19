@@ -682,6 +682,16 @@ namespace osc
     int init = 0;
     cudaMemcpy(launchParams.bounced, &init, sizeof(int), cudaMemcpyDefault);
     cudaMemcpy(launchParams.activeParticleCount, &activeParticleCount[0], sizeof(int), cudaMemcpyDefault);
+    float maxEdgeLength = 0;
+    for(int i = 0; i < 5; i++){
+      Tetra t = model->tetras[i];
+      float currentMax = max({length(t.A-t.B),length(t.A-t.C),length(t.A-t.D),length(t.B-t.C),length(t.B-t.D),length(t.C-t.D)});
+      if(currentMax > maxEdgeLength){
+        maxEdgeLength = currentMax;
+      }
+    }
+    launchParams.maxEdgeLength = maxEdgeLength;
+    std::cout << "max edge length " << maxEdgeLength << "\n";
     std::srand(42);
     vec3f particleOrigin = vec3f(1, 1, 1);
     float particleSpeedMultiplier = 0.4;
