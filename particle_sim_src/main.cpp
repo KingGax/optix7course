@@ -46,7 +46,7 @@ namespace osc
       simulation.initialiseSimulation(numParticles, delta, maxParticleMultiplier);
       maxParticles = numParticles * maxParticleMultiplier;
       const bool checkParticleSection = false;
-      const bool printParticles = true;
+      const bool printParticles = false;
       int timeStep = 0;
       double simulationTime = 0;
       double verificationTime = 0;
