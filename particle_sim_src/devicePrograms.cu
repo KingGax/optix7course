@@ -153,6 +153,7 @@ namespace osc
 
   extern "C" __global__ void __miss__radiance()
   {
+
     // int lastPrim = optixGetPayload_4();
     /*const TriangleMeshSBTData &sbtData = *(const TriangleMeshSBTData *)optixGetSbtDataPointer();
 
@@ -195,8 +196,9 @@ namespace osc
       const vec3f startVel = p->vel;
       const vec3f rayPos = startPos + startVel * optixLaunchParams.delta;
       const vec3f rayDir = -startVel;
-      //const float rayDist = optixLaunchParams.delta * length(rayDir);
+      
       const float tmax = optixLaunchParams.delta;
+      //const vec3f rayDir = 
       /*if(ix % 1000000 == 0){
         printf("%f\n", tmax);
       }*/
